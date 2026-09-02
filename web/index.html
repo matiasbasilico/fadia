@@ -181,6 +181,25 @@ main{flex:1;width:100%;}
   from{opacity:0;transform:translateY(10px) scale(.985);}
   to{opacity:1;transform:none;}}
 .card.hl{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft),var(--lift);}
+
+/* Cuando el modelo nombra una prenda —"la [3] destaca por…"— esa tarjeta
+   late un segundo. Sin esto hay que ir a buscar cuál es el [3] contando
+   las tarjetas. El anillo va en un ::after con transform y opacidad, que
+   son las dos propiedades que el compositor anima sin recalcular layout. */
+.card.citada{z-index:1;}
+/* La sombra va `inset`: la tarjeta tiene `overflow:hidden` y recortaba
+   cualquier halo hacia afuera, así que el anillo casi no se veía. */
+.card.citada::after{content:'';position:absolute;inset:0;border-radius:inherit;
+  pointer-events:none;z-index:5;
+  box-shadow:inset 0 0 0 2.5px var(--accent), inset 0 0 26px -6px var(--accent);
+  animation:latido 1.05s cubic-bezier(.16,1,.3,1) 2 both;}
+@keyframes latido{
+  0%{opacity:0;transform:scale(.985);}
+  28%{opacity:1;transform:scale(1);}
+  100%{opacity:0;transform:scale(1.025);}}
+/* La cita del texto no se anima: `prose.innerHTML` se rehace en cada token
+   del stream, así que la clase se perdería y el pulso se reiniciaría solo.
+   El latido va donde importa y donde el nodo es estable: la tarjeta. */
 @media (hover:hover){
   .card:hover{box-shadow:var(--lift);transform:translateY(-3px);border-color:var(--rule-2);}
 }
@@ -1316,6 +1335,23 @@ function apagarEscaner(grid){
   grid.querySelectorAll('.escaner').forEach(e=>e.remove());
 }
 
+/* Destaca las prendas que el modelo acaba de nombrar. `vistas` acumula los
+   números ya latidos para no repetir el pulso en cada token del stream. */
+function destacarCitasNuevas(texto,vistas){
+  if(QUIETO.matches) return;
+  for(const m of texto.matchAll(/\[(\d{1,2})\]/g)){
+    const n=m[1];
+    if(vistas.has(n)) continue;
+    vistas.add(n);
+    const card=document.getElementById(`c${turno}-${n}`);
+    if(card){
+      card.classList.remove('citada'); void card.offsetWidth;   // reiniciar
+      card.classList.add('citada');
+      setTimeout(()=>card.classList.remove('citada'),2200);
+    }
+  }
+}
+
 function md(t){
   return esc(t).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/\[(\d{1,2})\]/g,(m,n)=>`<span class="cite" data-t="${turno}" data-n="${n}">[${n}]</span>`)
@@ -1476,6 +1512,7 @@ async function preguntar(q){
   const chips=t.querySelector('[data-chips]'), prose=t.querySelector('[data-prose]'),
         grid=t.querySelector('[data-grid]'), refine=t.querySelector('[data-refine]');
   let texto='';
+  const citadas=new Set();     // qué [N] ya se destacaron en este turno
 
   try{
     const res=await fetch(API+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1530,7 +1567,13 @@ async function preguntar(q){
               refine.innerHTML=sug.map(x=>`<button class="chip act" type="button" data-q="${esc(x)}">${esc(x)}</button>`).join(''); }
           }
         }
-        else if(ev==='answer'){ texto+=d.text; prose.innerHTML=md(texto); }
+        else if(ev==='answer'){
+          texto+=d.text; prose.innerHTML=md(texto);
+          /* El texto llega en streaming, así que las citas aparecen de a
+             una: se destaca cada una en el momento en que el modelo la
+             nombra, y no todas juntas al final. */
+          destacarCitasNuevas(texto,citadas);
+        }
         else if(ev==='error'){ prose.innerHTML=`<p>Se cortó la respuesta, pero los productos de arriba son válidos.</p>`; }
         else if(ev==='done'&&!texto){ prose.innerHTML='<p>Mirá los resultados acá abajo.</p>'; }
       }
