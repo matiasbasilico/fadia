@@ -718,6 +718,37 @@ function imgChica(url,ancho){
    CSS px, la foto del modal ~470, la miniatura 48. */
 const ANCHO_TARJETA=400, ANCHO_MODAL=800, ANCHO_MINI=120;
 
+/* ---- placeholder de Magento ----
+   Magento sirve las fotos por /media/catalog/product/cache/<hash>/…, donde
+   el hash es un perfil de redimensionado. Si esa variante nunca se generó,
+   NO da 404: devuelve el logo de Magento, un cuadrado de 262×262. Las
+   Pepas tiene el catálogo entero así (5 de 5 en el muestreo), mientras que
+   complot y bowen responden bien.
+
+   Por eso no se le saca el segmento a todos: el original de complot pesa
+   800×1200 pero el de bowen 2666×4000, y estaríamos empeorando a los que
+   funcionan. Se corrige solo cuando la foto que llegó ES el placeholder,
+   y se reemplaza por el original —el mismo archivo sin el `cache/<hash>/`,
+   que sí existe (2000×2999 en el caso probado)—.
+
+   Como el reemplazo apunta al mismo archivo, un falso positivo es
+   inofensivo: se ve la misma imagen, sin recortar. */
+const RE_CACHE_MAGENTO=/\/media\/catalog\/product\/cache\/[0-9a-f]{32}\//;
+function esPlaceholder(im){
+  return im.naturalWidth>0 && im.naturalWidth===im.naturalHeight && im.naturalWidth<400;
+}
+function vigilarPlaceholder(raiz){
+  for(const im of raiz.querySelectorAll('img')){
+    if(im.dataset.reintento||!RE_CACHE_MAGENTO.test(im.src)) continue;
+    const arreglar=()=>{
+      if(im.dataset.reintento||!esPlaceholder(im)) return;
+      im.dataset.reintento='1';
+      im.src=im.src.replace(RE_CACHE_MAGENTO,'/media/catalog/product/');
+    };
+    if(im.complete) arreglar(); else im.addEventListener('load',arreglar,{once:true});
+  }
+}
+
 /* Precarga silenciosa: el navegador se queda con la respuesta en su caché,
    así que cuando el <img> real la pida ya está. */
 const yaPrecargado=new Set();
@@ -986,6 +1017,7 @@ function pintarFotos(){
            aria-label="Foto ${i+1}"><img src="${esc(imgChica(u,ANCHO_MINI))}" alt=""></button>`).join('')+`</div>`
     : '';
   zFotos.innerHTML=`<div class="gal-wrap"><div class="gal" id="gal">${gal}</div>${flechas}</div>${minis}`;
+  vigilarPlaceholder(zFotos);
   irAFoto(pd.foto,false);
   vigilarScroll();
   arrancarCarrusel();
@@ -1427,6 +1459,7 @@ async function preguntar(q){
           grid.innerHTML=d.resultados.length
             ? d.resultados.map(card).join('')
             : `<div class="empty">Nada coincide en <b>${modo==='mayorista'?'por mayor':'marcas'}</b>. Probá el otro modo o aflojá el precio.</div>`;
+          vigilarPlaceholder(grid);
           if(d.resultados.length){
             imprimir(grid);
             escanear(grid,d.resultados.length);
