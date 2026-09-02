@@ -727,7 +727,10 @@ const thread=$('#thread'); let busy=false, turno=0;
    Se guardan los últimos 6 intercambios: alcanza para el contexto y
    mantiene el prompt corto (el modelo tarda más con prompts largos). */
 let hilo=[];
-let modo=localStorage.getItem('fadia.modo')==='mayorista'?'mayorista':'marcas';
+/* Siempre arranca en Marcas. Antes se recordaba el último modo, y quien
+   hubiera entrado una vez a Por mayor volvía siempre ahí: el mayorista
+   es una desviación deliberada, no el punto de partida. */
+let modo='marcas';
 /* El género es un eje aparte del canal: podés comprar por mayor ropa de
    hombre, o buscar marcas de mujer. Se guardan por separado.
    "Sin género" no es un descarte: es el ~24 % del catálogo cuya línea la
@@ -843,7 +846,7 @@ function pintarModo(){
   $('#nota').textContent=n!=null
     ? `${n.toLocaleString('es-AR')} publicaciones en este modo.`
     : '';
-  localStorage.setItem('fadia.modo',modo);
+  /* El modo NO se persiste: cada visita arranca en Marcas. */
   pintarPlaceholder();
   pintarGeneros();
 }
