@@ -261,10 +261,12 @@ main{flex:1;width:100%;}
   max-height:0;opacity:0;margin-top:0;margin-bottom:0;
   transform:translateY(6px);pointer-events:none;overflow:hidden;}
 .replegable{max-height:4rem;}
-@media (hover:hover){
-  :root[data-etapa="hilo"] .dock:hover .replegable{
-    max-height:4rem;opacity:1;transform:none;pointer-events:auto;}
-}
+/* El despliegue lo maneja JS por cercanía del puntero, no `:hover`.
+   `.dock` es `pointer-events:none` para no tapar las tarjetas de atrás, así
+   que lo único hovereable era el input: entre el input y los chips quedaba
+   una banda muerta y, al subir el mouse hacia "Mujer", el dock perdía el
+   hover y se plegaba justo antes de que llegaras. Con una zona geométrica
+   no hay agujeros que cruzar. */
 /* Pista de que hay algo plegado: una manija fina sobre el input. */
 .manija{display:none;width:2rem;height:.2rem;border-radius:999px;background:var(--rule-2);
   margin:0 auto .4rem;pointer-events:none;transition:opacity .2s;}
@@ -1391,10 +1393,35 @@ thread.addEventListener('click',e=>{
   if(r&&!busy) autoescribir(r.dataset.q);
 });
 
+/* ---- despliegue por cercanía ---- */
+/* La zona sensible se calcula desde el input y es SIEMPRE la misma, esté
+   desplegado o no. Si dependiera del alto real del dock, al plegarse la
+   zona se achicaría, el puntero quedaría afuera y volvería a plegarse:
+   ese ida y vuelta es el parpadeo que se veía. */
+const MARGEN_X=24, ALTO_ZONA=78, GRACIA=320;
+let salirLuego=null, ocultarLuego=null;
+
+function cercaDelDock(si){
+  clearTimeout(salirLuego);
+  if(si){ clearTimeout(ocultarLuego); dock.classList.add('revelar'); }
+  /* Al salir no se pliega de una: un respiro evita que un temblor de mano
+     sobre el borde lo haga desaparecer. */
+  else salirLuego=setTimeout(()=>dock.classList.remove('revelar'),GRACIA);
+}
+
+window.addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch') return;                 // en táctil manda la pulsación larga
+  if(document.documentElement.dataset.etapa!=='hilo') return;
+  const f=$('#form').getBoundingClientRect();
+  cercaDelDock(e.clientX>=f.left-MARGEN_X && e.clientX<=f.right+MARGEN_X
+            && e.clientY>=f.top-ALTO_ZONA && e.clientY<=innerHeight);
+},{passive:true});
+
 /* En el celular no hay hover: mantener apretado el input despliega los
    controles por unos segundos. */
-let pulsacion=null, ocultarLuego=null;
+let pulsacion=null;
 function revelarControles(ms=4000){
+  clearTimeout(salirLuego);
   dock.classList.add('revelar');
   clearTimeout(ocultarLuego);
   ocultarLuego=setTimeout(()=>dock.classList.remove('revelar'),ms);
