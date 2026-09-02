@@ -55,6 +55,9 @@ Y dejá los dos **residentes en memoria**:
 make modelo
 ```
 
+> Guía completa —incluida la alternativa con **Ollama**, todas las variables
+> de entorno y qué mirar cuando algo no anda— en **[docs/MODELOS.md](docs/MODELOS.md)**.
+
 > **Por qué importa.** Si no quedan residentes, cada búsqueda desaloja al modelo
 > de chat para cargar el de embeddings y viceversa. Medido: una llamada de
 > 400 ms terminaba costando 3,8 s de recarga. Con los dos fijos, el primer
