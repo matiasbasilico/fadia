@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es-AR">
+<html lang="es-AR" data-etapa="inicio">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -64,6 +64,13 @@
 
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent;}
 html{scroll-behavior:smooth;}
+/* `[hidden]{display:none}` es una regla del navegador y pierde contra
+   cualquier regla de autor que fije `display`. Como acá varios elementos
+   se ocultan con el atributo (#intro, #hilo-info, los chips, el modal) y
+   además tienen su propio `display:flex`/`grid`, el atributo no servía:
+   el modal cerrado se comía los toques en mobile y "empezar de cero"
+   aparecía en la pantalla de inicio. Esto lo vuelve confiable de una vez. */
+[hidden]{display:none !important;}
 body{background:var(--ground);color:var(--ink);font-family:var(--ui);font-size:15px;
   line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100dvh;
   display:flex;flex-direction:column;overflow-x:hidden;}
@@ -102,6 +109,17 @@ main{flex:1;width:100%;}
 .thread{max-width:var(--col);margin:0 auto;
   padding:1.2rem var(--gut) calc(11rem + var(--safe));
   display:flex;flex-direction:column;gap:2.2rem;}
+
+/* ============ etapa: inicio vs hilo ============ */
+/* Al arrancar, el chat va pegado abajo de las sugerencias en vez de
+   clavado al pie: es lo primero que hay que mirar y quedaba a media
+   pantalla de distancia. Cuando empieza la conversación vuelve a ser una
+   barra fija, que es lo que sirve cuando hay resultados arriba. */
+:root[data-etapa="inicio"] main{flex:0 0 auto;}
+:root[data-etapa="inicio"] .thread{padding-bottom:.4rem;}
+:root[data-etapa="inicio"] .dock{position:static;background:none;
+  padding-top:0;padding-bottom:1.2rem;}
+:root[data-etapa="inicio"] .hint{margin-top:.7rem;}
 
 .intro{padding:clamp(1.2rem,5vh,3.4rem) 0 .4rem;display:flex;flex-direction:column;gap:.9rem;}
 .intro h1{font-family:var(--display);font-weight:800;letter-spacing:-.03em;line-height:1.04;
@@ -233,6 +251,69 @@ main{flex:1;width:100%;}
 .hint{max-width:min(600px,100%);margin:.45rem auto 0;text-align:center;
   font-family:var(--mono);font-size:.6rem;color:var(--faint);pointer-events:none;}
 
+/* ---- controles que se repliegan una vez que arrancó la búsqueda ---- */
+/* Están para elegir antes de preguntar; después estorban arriba del input.
+   Se repliegan solos y vuelven si acercás el mouse (o si en el celular
+   mantenés apretado el input, donde no hay hover). */
+.replegable{transition:max-height .26s cubic-bezier(.16,1,.3,1),
+  opacity .2s,margin .26s,transform .26s;}
+:root[data-etapa="hilo"] .dock:not(.revelar) .replegable{
+  max-height:0;opacity:0;margin-top:0;margin-bottom:0;
+  transform:translateY(6px);pointer-events:none;overflow:hidden;}
+.replegable{max-height:4rem;}
+@media (hover:hover){
+  :root[data-etapa="hilo"] .dock:hover .replegable{
+    max-height:4rem;opacity:1;transform:none;pointer-events:auto;}
+}
+/* Pista de que hay algo plegado: una manija fina sobre el input. */
+.manija{display:none;width:2rem;height:.2rem;border-radius:999px;background:var(--rule-2);
+  margin:0 auto .4rem;pointer-events:none;transition:opacity .2s;}
+:root[data-etapa="hilo"] .manija{display:block;}
+:root[data-etapa="hilo"] .dock.revelar .manija,
+:root[data-etapa="hilo"] .dock:hover .manija{opacity:0;}
+
+/* ---- el chat como centro: salto, tipeo y espera ---- */
+.dock form{transition:transform .22s cubic-bezier(.16,1,.3,1),border-color .16s;}
+.dock form.saltando{animation:salto .42s cubic-bezier(.16,1,.3,1);}
+@keyframes salto{
+  0%{transform:none;}
+  38%{transform:translateY(-6px) scale(1.022);}
+  100%{transform:none;}}
+/* Cursor mientras se autoescribe */
+.dock form.tipeando input{caret-color:var(--accent);}
+.dock form.tipeando::after{content:'';width:2px;height:1.05em;background:var(--accent);
+  margin-right:.55rem;animation:latir .75s steps(1,end) infinite;flex:none;}
+@keyframes latir{0%,49%{opacity:1;}50%,100%{opacity:0;}}
+
+/* El mismo contorno giratorio de las tarjetas, ahora sobre el borde
+   redondeado del input: mientras el modelo piensa, el chat late. */
+.dock form.pensando{position:relative;}
+.dock form.pensando::before{content:'';position:absolute;inset:-1px;border-radius:999px;
+  padding:1.6px;pointer-events:none;
+  background:linear-gradient(120deg,var(--accent),var(--rule-2),var(--accent));
+  background-size:200% 100%;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  animation:esc-borde 1.6s linear infinite;}
+
+/* ---- salida de impresora ---- */
+/* Los resultados no aparecen: salen. El recorte descubre la grilla de
+   arriba hacia abajo y una línea fina acompaña el borde del papel. */
+.grid.imprimiendo{animation:imprimir .85s cubic-bezier(.22,1,.36,1) both;position:relative;}
+/* La entrada escalonada de cada tarjeta pelearía con el barrido de arriba
+   hacia abajo: durante la impresión manda el recorte. */
+.grid.imprimiendo .card{animation:none;}
+@keyframes imprimir{
+  from{clip-path:inset(0 0 100% 0);}
+  to{clip-path:inset(0 0 0 0);}}
+.papel{position:absolute;left:-2px;right:-2px;height:2px;pointer-events:none;z-index:4;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  animation:papel .85s cubic-bezier(.22,1,.36,1) both;}
+@keyframes papel{
+  from{top:0;opacity:.85;}
+  85%{opacity:.85;}
+  to{top:100%;opacity:0;}}
+
 .pulse{display:inline-block;width:.4rem;height:.4rem;border-radius:50%;background:var(--accent);
   animation:pulse 1.1s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:.25;transform:scale(.8);}50%{opacity:1;transform:scale(1.15);}}
@@ -286,13 +367,9 @@ main{flex:1;width:100%;}
   opacity:0;transform:scale(.97) translateY(8px);
   transition:opacity .22s ease-out,transform .26s cubic-bezier(.16,1,.3,1);}
 .panel.abierto{opacity:1;transform:none;}
-/* `[hidden]` del navegador vale display:none, pero es una regla de
-   user-agent y pierde contra cualquier regla de autor: el `display:grid` de
-   arriba la anulaba y el modal cerrado seguía en el DOM, invisible
-   (opacity:0) pero comiéndose todos los toques. En escritorio no se notaba
-   porque vacío colapsa a altura 0; en mobile el media query le fija
-   height:100dvh y tapaba la pantalla entera. */
-.panel[hidden],.velo[hidden]{display:none;}
+/* Ocultarlo depende del `[hidden]{display:none !important}` global de
+   arriba: sin eso, el `display:grid` de acá lo anulaba y el modal cerrado
+   se quedaba invisible pero comiéndose todos los toques en mobile. */
 .panel{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
 @media (min-width:760px){
   .panel{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);grid-template-rows:1fr;}
@@ -472,12 +549,13 @@ main{flex:1;width:100%;}
   <div class="pd-ficha" id="pd-ficha"></div>
 </aside>
 
-<div class="dock">
-  <div class="generos" id="generos" role="group" aria-label="Segmento"></div>
-  <div class="hilo-info" id="hilo-info" hidden>
+<div class="dock" id="dock">
+  <div class="generos replegable" id="generos" role="group" aria-label="Segmento"></div>
+  <div class="hilo-info replegable" id="hilo-info" hidden>
     <span id="hilo-n"></span>
     <button type="button" id="hilo-nuevo">empezar de cero</button>
   </div>
+  <span class="manija" aria-hidden="true"></span>
   <form id="form">
     <input id="q" autocomplete="off" enterkeyhint="search" placeholder="…">
     <button class="send" id="send" type="submit" aria-label="Buscar">
@@ -1151,6 +1229,20 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!panel.hidden) cer
    el marco quieto encima, que es peor que no ponerlo. */
 const QUIETO=window.matchMedia('(prefers-reduced-motion: reduce)');
 
+/* Los resultados salen del chat como una hoja de la impresora: el recorte
+   los descubre de arriba hacia abajo y una línea fina hace de borde del
+   papel. Dura lo mismo que el recorte y se limpia sola. */
+function imprimir(grid){
+  if(QUIETO.matches) return;
+  grid.classList.remove('imprimiendo'); void grid.offsetHeight;   // reiniciar
+  grid.classList.add('imprimiendo');
+  grid.querySelector('.papel')?.remove();
+  const linea=document.createElement('span');
+  linea.className='papel'; linea.setAttribute('aria-hidden','true');
+  grid.appendChild(linea);
+  setTimeout(()=>{ linea.remove(); grid.classList.remove('imprimiendo'); },900);
+}
+
 function escanear(grid,n){
   if(QUIETO.matches) return;
   apagarEscaner(grid);
@@ -1234,17 +1326,67 @@ document.addEventListener('click',e=>{
     if(el){ document.querySelectorAll('.card.hl').forEach(x=>x.classList.remove('hl'));
       el.classList.add('hl'); el.scrollIntoView({block:'center'}); } }
 });
+/* ============ el chat como centro ============ */
+const dock=$('#dock');
+const dormir=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* Tocar una sugerencia no dispara la búsqueda de una: primero salta al
+   chat y la escribe ahí, para que se entienda que todo pasa por el chat y
+   que ese texto es editable antes de mandarlo. */
+async function autoescribir(texto){
+  const q=$('#q'), form=$('#form');
+  if(QUIETO.matches){ q.value=texto; form.requestSubmit(); return; }
+  form.scrollIntoView({block:'center',behavior:'smooth'});
+  form.classList.add('saltando');
+  setTimeout(()=>form.classList.remove('saltando'),430);
+  await dormir(150);
+  q.value=''; form.classList.add('tipeando');
+  try{ q.focus({preventScroll:true}); }catch{ q.focus(); }
+  /* Un pelo más rápido cuanto más largo el texto: una sugerencia de 40
+     caracteres a 22 ms tardaría casi un segundo y se hace eterna. */
+  const paso=Math.max(9,Math.min(22,Math.round(560/Math.max(1,texto.length))));
+  for(let i=1;i<=texto.length;i++){ q.value=texto.slice(0,i); await dormir(paso); }
+  await dormir(170);
+  form.classList.remove('tipeando');
+  form.requestSubmit();
+}
+
 $('#seeds').addEventListener('click',e=>{
-  if(e.target.classList.contains('seed')&&!busy){ $('#q').value=e.target.textContent; $('#form').requestSubmit(); }
+  if(e.target.classList.contains('seed')&&!busy) autoescribir(e.target.textContent.trim());
 });
 thread.addEventListener('click',e=>{
   const r=e.target.closest('.chip.act');
-  if(r&&!busy){ $('#q').value=r.dataset.q; $('#form').requestSubmit(); }
+  if(r&&!busy) autoescribir(r.dataset.q);
 });
+
+/* En el celular no hay hover: mantener apretado el input despliega los
+   controles por unos segundos. */
+let pulsacion=null, ocultarLuego=null;
+function revelarControles(ms=4000){
+  dock.classList.add('revelar');
+  clearTimeout(ocultarLuego);
+  ocultarLuego=setTimeout(()=>dock.classList.remove('revelar'),ms);
+}
+$('#q').addEventListener('pointerdown',()=>{
+  clearTimeout(pulsacion);
+  pulsacion=setTimeout(revelarControles,450);       // pulsación larga
+});
+for(const ev of ['pointerup','pointercancel','pointerleave'])
+  $('#q').addEventListener(ev,()=>clearTimeout(pulsacion));
+/* Elegir género o cortar el hilo son acciones que piden ver los controles:
+   mientras se usan, no se repliegan. */
+dock.addEventListener('click',e=>{ if(e.target.closest('.replegable')) revelarControles(); });
 
 async function preguntar(q){
   busy=true; $('#send').disabled=true; $('#q').value=''; $('#q').blur();
-  $('#intro')?.remove();
+  /* Se oculta, no se elimina: `pintarModo()` escribe sobre #titulo y
+     #seeds, y #seeds tiene su propio listener. Borrarlos obligaba a
+     recrear el marcado y a recablear los eventos. */
+  { const i=$('#intro'); if(i) i.hidden=true; }
+  /* A partir de acá el chat deja de estar al centro y pasa a barra fija, y
+     los controles de arriba se repliegan. */
+  document.documentElement.setAttribute('data-etapa','hilo');
+  $('#form').classList.add('pensando');
   turno++;
 
   const t=document.createElement('section');
@@ -1285,7 +1427,10 @@ async function preguntar(q){
           grid.innerHTML=d.resultados.length
             ? d.resultados.map(card).join('')
             : `<div class="empty">Nada coincide en <b>${modo==='mayorista'?'por mayor':'marcas'}</b>. Probá el otro modo o aflojá el precio.</div>`;
-          if(d.resultados.length) escanear(grid,d.resultados.length);
+          if(d.resultados.length){
+            imprimir(grid);
+            escanear(grid,d.resultados.length);
+          }
           chips.hidden=false;
           if(d.aflojados?.length) chips.insertAdjacentHTML('beforeend',
             d.aflojados.map(a=>`<span class="chip warn">sin ${esc(ES[a.split('=')[0]]||a.split('=')[0])}</span>`).join(''));
@@ -1319,6 +1464,7 @@ async function preguntar(q){
     grid.innerHTML=''; prose.innerHTML=`<p>No pude conectar con la API. ${esc(err.message)}</p>`;
   }finally{
     busy=false; $('#send').disabled=false; prose.querySelector('.pulse')?.remove();
+    $('#form').classList.remove('pensando');
     apagarEscaner(grid);
     if(texto) hilo.push({pregunta:q, respuesta:texto.slice(0,400)});
     if(hilo.length>6) hilo=hilo.slice(-6);
@@ -1331,7 +1477,21 @@ function pintarHilo(){
   $('#hilo-info').hidden = n===0;
   $('#hilo-n').textContent = n===1 ? 'siguiendo 1 pregunta' : `siguiendo ${n} preguntas`;
 }
-$('#hilo-nuevo').addEventListener('click',()=>{ hilo=[]; pintarHilo(); $('#q').focus(); });
+$('#hilo-nuevo').addEventListener('click',()=>{
+  hilo=[]; pintarHilo(); volverAlInicio(); $('#q').focus();
+});
+
+/* Empezar de cero es volver a la pantalla de arranque: se borra el hilo
+   visible, reaparecen las sugerencias y el chat vuelve al centro. */
+function volverAlInicio(){
+  thread.querySelectorAll('.turn').forEach(t=>t.remove());
+  { const i=$('#intro'); if(i) i.hidden=false; }
+  document.documentElement.setAttribute('data-etapa','inicio');
+  dock.classList.remove('revelar');
+  turno=0;
+  pintarModo();                      // repinta el intro con sus sugerencias
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 
 $('#form').addEventListener('submit',e=>{
   e.preventDefault(); const q=$('#q').value.trim();
