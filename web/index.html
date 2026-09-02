@@ -698,8 +698,13 @@ let modo=localStorage.getItem('fadia.modo')==='mayorista'?'mayorista':'marcas';
    hombre, o buscar marcas de mujer. Se guardan por separado.
    "Sin género" no es un descarte: es el ~24 % del catálogo cuya línea la
    tienda no declara, y merece poder navegarse. */
-const GENEROS=[['','Todo'],['women','Mujer'],['men','Hombre'],['sin','Sin género']];
-let genero=localStorage.getItem('fadia.genero')||'';
+/* Sin "Todo": siempre hay un segmento elegido. Mujer es el arranque
+   porque es el 53 % del catálogo de marcas (hombre 12 %). "Sin género" no
+   es ropa unisex: son las 4.822 prendas que el clasificador no pudo
+   asignar, y por eso sigue estando como opción. */
+const GENEROS=[['women','Mujer'],['men','Hombre'],['sin','Sin género']];
+let genero=localStorage.getItem('fadia.genero')||'women';
+if(!GENEROS.some(g=>g[0]===genero)) genero='women';   // migrar el '' guardado
 
 /* Las dos experiencias no son un filtro con otro nombre: cambian la
    intención de compra, y con ella el copy, los ejemplos y qué dato manda
@@ -712,27 +717,64 @@ const MODOS={
   marcas:{
     titulo:'¿Qué estás buscando?',
     bajada:'Marcas argentinas con local en shopping. Contame la ocasión, el corte o el color y te traigo lo que hay.',
-    placeholder:'un vestido negro para una cena…',
-    seeds:['un vestido negro para una cena',
-           'algo con brillo para año nuevo',
-           'top de encaje para salir de noche',
-           'un blazer oversize',
-           'jean wide leg de tiro alto',
-           'sandalias para un casamiento de día',
-           'un abrigo largo y liviano'],
+    /* Un juego por segmento, apoyado en lo que el catálogo realmente
+       tiene: mujer manda en tops (1.733) y vestidos (369); hombre en
+       calzado (436) y tops (296); el sin-género en calzado y bolsos. */
+    seeds:{
+      women:['un vestido negro para una cena',
+             'top de encaje para salir de noche',
+             'un blazer oversize',
+             'jean wide leg de tiro alto',
+             'sandalias para un casamiento de día',
+             'un sweater de morley liviano'],
+      men:  ['una camisa para un casamiento',
+             'zapatillas urbanas de cuero',
+             'un buzo con capucha',
+             'campera de gabardina',
+             'jean recto azul',
+             'un ambo para la oficina'],
+      sin:  ['un buzo oversize',
+             'remera básica de algodón',
+             'zapatillas blancas',
+             'una mochila para todos los días',
+             'campera de abrigo liviana',
+             'gorro de lana'],
+    },
   },
   mayorista:{
     titulo:'Comprá por mayor sin recorrer Avellaneda.',
     bajada:'Locales mayoristas de Av. Avellaneda, Flores. Cada ficha trae el precio por mayor, la curva mínima y la dirección del local.',
-    placeholder:'vestidos de fiesta para revender…',
-    seeds:['vestidos de fiesta para revender',
-           'remeras básicas por curva',
-           'jeans de mujer, ¿cuál es la compra mínima?',
-           'lencería con mínimo bajo',
-           'abrigos de invierno para reventa',
-           'ropa de bebé por mayor'],
+    seeds:{
+      women:['vestidos de fiesta para revender',
+             'jeans de mujer, ¿cuál es la compra mínima?',
+             'lencería con mínimo bajo',
+             'blusas por curva',
+             'calzas deportivas al por mayor',
+             'camperas de mujer para reventa'],
+      men:  ['remeras de hombre por curva',
+             'jeans de hombre al por mayor',
+             'buzos de frisa para reventa',
+             'camisas de hombre, compra mínima',
+             'bermudas por curva',
+             'camperas de hombre para invierno'],
+      sin:  ['remeras básicas por curva',
+             'buzos oversize al por mayor',
+             'medias por docena',
+             'gorros y bufandas para reventa',
+             'mochilas al por mayor',
+             'ropa de bebé por mayor'],
+    },
   },
 };
+
+/* Las sugerencias dependen del modo Y del segmento. Un solo lugar donde
+   resolverlo, para que la grilla de chips, el placeholder animado y la
+   pantalla Explorar usen siempre el mismo juego. */
+function sugerencias(){
+  const s=MODOS[modo].seeds;
+  return (Array.isArray(s) ? s : s[genero] || s.women || []);
+}
+const placeholderDe=()=>(sugerencias()[0]||'¿qué estás buscando?')+'…';
 
 const money=n=>'$'+Math.round(n).toLocaleString('es-AR');
 
@@ -762,7 +804,7 @@ function pintarModo(){
   pintarNav();
   $('#titulo').textContent=m.titulo;
   $('#bajada').textContent=m.bajada;
-  $('#seeds').innerHTML=m.seeds.map(s=>`<button class="seed" type="button">${esc(s)}</button>`).join('');
+  $('#seeds').innerHTML=sugerencias().map(s=>`<button class="seed" type="button">${esc(s)}</button>`).join('');
   const n=(STATS.porCanal||{})[modo];
   $('#nota').textContent=n!=null
     ? `${n.toLocaleString('es-AR')} publicaciones en este modo.`
@@ -780,7 +822,17 @@ $('#generos').addEventListener('click',e=>{
   const b=e.target.closest('.gen');
   if(!b||busy||b.dataset.g===genero) return;
   genero=b.dataset.g; hilo=[];
-  localStorage.setItem('fadia.genero',genero); pintarGeneros();
+  localStorage.setItem('fadia.genero',genero);
+  pintarGeneros();
+  /* Las sugerencias y el placeholder cambian con el segmento: ofrecer
+     "un vestido negro" con Hombre puesto obligaba a aflojar categoría y
+     color, y la búsqueda terminaba devolviendo alpargatas. */
+  $('#seeds').innerHTML=sugerencias()
+    .map(x=>`<button class="seed" type="button">${esc(x)}</button>`).join('');
+  pintarPlaceholder();
+  /* Si estabas viendo Explorar, la muestra también corresponde al segmento
+     anterior: se rehace. */
+  if(vista==='explorar') mostrarExplorar();
 });
 
 /* ============ navegación ============ */
@@ -881,7 +933,7 @@ async function traerPagina(){
 }
 
 async function mostrarExplorar(){
-  const ejemplos=MODOS[modo].seeds||[];
+  const ejemplos=sugerencias();
   const q=ejemplos.length?ejemplos[Math.floor(Math.random()*ejemplos.length)]:'ropa';
   pantallaGrilla('Explorar', `Una muestra a partir de «${q}». Seguí bajando.`,
                  [], '');
@@ -1839,8 +1891,8 @@ function pararPlaceholder(){
 function animarPlaceholder(){
   pararPlaceholder();
   const q=$('#q');
-  const ejemplos=(MODOS[modo].seeds||[]).slice(0,6);
-  if(QUIETO.matches||!ejemplos.length){ q.placeholder=MODOS[modo].placeholder; return; }
+  const ejemplos=sugerencias().slice(0,6);
+  if(QUIETO.matches||!ejemplos.length){ q.placeholder=placeholderDe(); return; }
 
   let i=0, n=0, borrando=false;
   const paso=()=>{
@@ -1868,7 +1920,7 @@ function pintarPlaceholder(){
 
 /* Enfocar o escribir corta la animación y deja el texto fijo del modo. */
 for(const ev of ['focus','input']) $('#q').addEventListener(ev,()=>{
-  if(cicloPlaceholder){ pararPlaceholder(); $('#q').placeholder=MODOS[modo].placeholder; }
+  if(cicloPlaceholder){ pararPlaceholder(); $('#q').placeholder=placeholderDe(); }
 });
 /* El botón de enviar se enciende solo cuando hay algo para mandar. */
 $('#q').addEventListener('input',()=>
