@@ -90,23 +90,45 @@ header{position:sticky;top:0;z-index:40;
   letter-spacing:-.03em;justify-self:center;white-space:nowrap;}
 .wordmark i{font-style:normal;color:var(--accent);}
 
-/* Navegación: una sola píldora con las cuatro secciones. */
-.nav{display:flex;gap:2px;padding:2px;background:var(--surface-2);
-  border-radius:999px;justify-self:start;overflow-x:auto;scrollbar-width:none;max-width:100%;}
-.nav::-webkit-scrollbar{display:none;}
-.modo{border:none;background:transparent;border-radius:999px;cursor:pointer;
-  padding:.32rem .8rem;font-size:.78rem;font-weight:500;color:var(--muted);
-  white-space:nowrap;flex:none;transition:.14s;}
-.modo:hover{color:var(--ink);}
-.modo[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font-weight:600;}
+/* Navegación: un botón que dice dónde estás y abre un menú.
+   Antes era una píldora con las cuatro entradas, y tenía dos problemas: en
+   mobile no entraba y había que scrollearla de costado, y mezclaba dos ejes
+   —sección y catálogo— en una sola fila. Como "Marcas" no figuraba, entrar
+   a "Por mayor" era un viaje de ida: no había forma de volver. */
+.nav-caja{position:relative;justify-self:start;}
+.nav-abrir{display:flex;align-items:center;gap:.35rem;border:1px solid var(--rule-2);
+  background:var(--surface);border-radius:999px;cursor:pointer;
+  padding:.34rem .7rem .34rem .85rem;font:inherit;font-size:.78rem;font-weight:600;
+  color:var(--ink);white-space:nowrap;transition:.14s;}
+.nav-abrir:hover{border-color:var(--ink-2);}
+.nav-abrir svg{transition:transform .18s;color:var(--muted);}
+.nav-abrir[aria-expanded="true"] svg{transform:rotate(180deg);}
+
+.menu{position:absolute;top:calc(100% + .4rem);left:0;z-index:60;min-width:11rem;
+  background:var(--surface);border:1px solid var(--rule-2);border-radius:.7rem;
+  box-shadow:var(--lift);padding:.35rem;}
+.menu-h{font-family:var(--mono);font-size:.58rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--faint);padding:.45rem .6rem .25rem;}
+.menu-it{display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+  width:100%;border:none;background:none;cursor:pointer;border-radius:.45rem;
+  padding:.42rem .6rem;font:inherit;font-size:.85rem;color:var(--ink-2);text-align:left;
+  transition:.12s;}
+.menu-it:hover{background:var(--surface-2);color:var(--ink);}
+.menu-it[aria-checked="true"]{color:var(--ink);font-weight:600;}
+.menu-it[aria-checked="true"]::after{content:'✓';color:var(--accent);font-size:.8rem;}
 .estado{justify-self:end;display:flex;align-items:baseline;gap:.32rem;
   font-family:var(--mono);font-size:.64rem;color:var(--muted);white-space:nowrap;}
 .estado b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums;}
 .estado .u{margin-right:.5rem;}
-/* En pantallas chicas los contadores importan más que el nombre del
-   modelo: se esconde ese, no los números. */
-@media (max-width:640px){ .estado #modelo{display:none;} }
-@media (max-width:430px){ .estado .u{display:none;} }
+/* En pantallas chicas primero se cae el nombre del modelo. Lo que NO se
+   cae son las palabras "productos" y "marcas": sin ellas quedaba
+   "149.595  46  ●", que no se entiende. Si no entra el par completo, se
+   deja solo el total de productos con su palabra, y el punto de estado. */
+@media (max-width:760px){ .estado #modelo{display:none;} }
+@media (max-width:560px){
+  .estado #n-marcas, .estado .u.marcas{display:none;}
+}
+@media (max-width:400px){ .estado{font-size:.6rem;} }
 .dot{width:.4rem;height:.4rem;border-radius:50%;background:var(--faint);flex:none;}
 .dot.on{background:var(--ok);} .dot.off{background:var(--accent);}
 
@@ -626,16 +648,28 @@ main{flex:1;width:100%;}
 
 <header>
   <div class="bar">
-    <nav class="nav" aria-label="Secciones">
-      <button class="modo" data-vista="explorar" aria-pressed="false">Explorar</button>
-      <button class="modo" data-vista="chat"     aria-pressed="true">Chat</button>
-      <button class="modo" data-vista="favoritos" aria-pressed="false">Favoritos</button>
-      <button class="modo" data-modo="mayorista" aria-pressed="false">Por mayor</button>
-    </nav>
+    <div class="nav-caja">
+      <button class="nav-abrir" id="nav-abrir" type="button"
+              aria-haspopup="true" aria-expanded="false">
+        <span id="nav-actual">Chat</span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="menu" id="nav-menu" role="menu" hidden>
+        <p class="menu-h">Sección</p>
+        <button class="menu-it" role="menuitemradio" data-vista="chat">Chat</button>
+        <button class="menu-it" role="menuitemradio" data-vista="explorar">Explorar</button>
+        <button class="menu-it" role="menuitemradio" data-vista="favoritos">Favoritos</button>
+        <p class="menu-h">Catálogo</p>
+        <button class="menu-it" role="menuitemradio" data-modo="marcas">Marcas</button>
+        <button class="menu-it" role="menuitemradio" data-modo="mayorista">Por mayor</button>
+      </div>
+    </div>
     <span class="wordmark">Fad<i>IA</i></span>
     <span class="estado">
       <b id="n-prod">—</b><span class="u">productos</span>
-      <b id="n-marcas">—</b><span class="u">marcas</span>
+      <b id="n-marcas">—</b><span class="u marcas">marcas</span>
       <span class="dot" id="dot"></span><span id="modelo">…</span>
     </span>
   </div>
@@ -840,29 +874,54 @@ $('#generos').addEventListener('click',e=>{
    sino un cambio de catálogo: se marca sola según el modo activo. */
 let vista='chat';
 
-document.querySelector('.nav').addEventListener('click',e=>{
-  const b=e.target.closest('.modo');
-  if(!b||busy) return;
-  if(b.dataset.modo){                       // Por mayor: cambia el catálogo
+const NOMBRE_VISTA={chat:'Chat',explorar:'Explorar',favoritos:'Favoritos'};
+const menu=$('#nav-menu'), abrirMenu=$('#nav-abrir');
+
+function menuAbierto(si){
+  menu.hidden=!si;
+  abrirMenu.setAttribute('aria-expanded',String(si));
+}
+abrirMenu.addEventListener('click',e=>{
+  e.stopPropagation();
+  menuAbierto(menu.hidden);
+});
+/* Un clic afuera o Escape lo cierran: es un menú, no un panel. */
+document.addEventListener('click',()=>{ if(!menu.hidden) menuAbierto(false); });
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!menu.hidden){ menuAbierto(false); abrirMenu.focus(); }
+});
+
+menu.addEventListener('click',e=>{
+  const b=e.target.closest('.menu-it');
+  if(!b) return;
+  e.stopPropagation();
+  menuAbierto(false);
+  if(busy) return;
+  if(b.dataset.modo){                       // cambia el CATÁLOGO
     if(b.dataset.modo===modo) return;
     modo=b.dataset.modo; hilo=[]; vista='chat';
-    volverAlInicio(); pintarModo(); pintarNav();
+    volverAlInicio(); pintarModo();
     return;
   }
-  if(b.dataset.vista===vista) return;
+  if(b.dataset.vista===vista) return;       // cambia la SECCIÓN
   vista=b.dataset.vista;
   pintarNav();
-  if(vista==='chat')       volverAlInicio();
+  if(vista==='chat')           volverAlInicio();
   else if(vista==='explorar')  mostrarExplorar();
   else if(vista==='favoritos') mostrarFavoritos();
 });
 
+/* El botón dice siempre dónde estás. En "Por mayor" se nombra el catálogo
+   además de la sección, porque es la diferencia que más cambia lo que ves. */
 function pintarNav(){
-  for(const b of document.querySelectorAll('.nav .modo')){
-    const activo = b.dataset.modo
-      ? modo==='mayorista'
-      : (modo!=='mayorista' && b.dataset.vista===vista);
-    b.setAttribute('aria-pressed',String(activo));
+  const etiqueta = modo==='mayorista'
+    ? `${NOMBRE_VISTA[vista]} · Por mayor`
+    : NOMBRE_VISTA[vista];
+  $('#nav-actual').textContent=etiqueta;
+  for(const b of menu.querySelectorAll('.menu-it')){
+    b.setAttribute('aria-checked', String(b.dataset.modo
+      ? b.dataset.modo===modo
+      : b.dataset.vista===vista));
   }
 }
 
