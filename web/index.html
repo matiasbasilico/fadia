@@ -82,18 +82,24 @@ a{color:inherit;text-decoration:none;}
 header{position:sticky;top:0;z-index:40;
   background:color-mix(in srgb,var(--ground) 90%,transparent);
   backdrop-filter:blur(14px);border-bottom:1px solid var(--rule);}
-.bar{max-width:var(--col);margin:0 auto;padding:.55rem var(--gut);
-  display:flex;align-items:center;gap:.7rem;}
-.wordmark{font-family:var(--display);font-weight:800;font-size:1.02rem;letter-spacing:-.03em;flex:none;}
+/* Tres columnas iguales para que el wordmark quede centrado ópticamente
+   aunque la navegación y los contadores midan distinto. */
+.bar{max-width:1240px;margin:0 auto;padding:.6rem var(--gut);
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.7rem;}
+.wordmark{font-family:var(--display);font-weight:800;font-size:1.05rem;
+  letter-spacing:-.03em;justify-self:center;white-space:nowrap;}
 .wordmark i{font-style:normal;color:var(--accent);}
 
-/* selector de modo: la decisión más importante de la pantalla */
-.modos{display:flex;gap:2px;padding:2px;background:var(--surface-2);border-radius:999px;flex:none;}
+/* Navegación: una sola píldora con las cuatro secciones. */
+.nav{display:flex;gap:2px;padding:2px;background:var(--surface-2);
+  border-radius:999px;justify-self:start;overflow-x:auto;scrollbar-width:none;max-width:100%;}
+.nav::-webkit-scrollbar{display:none;}
 .modo{border:none;background:transparent;border-radius:999px;cursor:pointer;
-  padding:.3rem .72rem;font-size:.78rem;font-weight:500;color:var(--muted);
-  white-space:nowrap;transition:.14s;}
+  padding:.32rem .8rem;font-size:.78rem;font-weight:500;color:var(--muted);
+  white-space:nowrap;flex:none;transition:.14s;}
+.modo:hover{color:var(--ink);}
 .modo[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font-weight:600;}
-.estado{margin-left:auto;display:flex;align-items:baseline;gap:.32rem;
+.estado{justify-self:end;display:flex;align-items:baseline;gap:.32rem;
   font-family:var(--mono);font-size:.64rem;color:var(--muted);white-space:nowrap;}
 .estado b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums;}
 .estado .u{margin-right:.5rem;}
@@ -121,6 +127,21 @@ main{flex:1;width:100%;}
 :root[data-etapa="inicio"] .dock{position:static;background:none;
   padding-top:0;padding-bottom:1.2rem;}
 :root[data-etapa="inicio"] .hint{margin-top:.7rem;}
+
+/* ---- landing centrada ---- */
+/* En la pantalla de inicio todo se alinea al centro y el titular manda.
+   Cuando arranca la conversación el intro desaparece, así que estas reglas
+   sólo viven en esa etapa. */
+:root[data-etapa="inicio"] .intro{align-items:center;text-align:center;
+  padding-top:clamp(2rem,9vh,5.5rem);}
+:root[data-etapa="inicio"] .intro h1{max-width:20ch;font-size:clamp(2rem,1.1rem+4.4vw,3.6rem);}
+:root[data-etapa="inicio"] .intro p{max-width:46ch;}
+/* Las sugerencias ahora viven en el dock, debajo del chat. Sólo se ven en
+   la landing: con resultados en pantalla estorban. */
+.seeds{max-width:min(680px,100%);margin:.9rem auto 0;pointer-events:auto;
+  justify-content:center;flex-wrap:wrap;}
+:root[data-etapa="hilo"] .seeds{display:none;}
+:root[data-etapa="inicio"] .generos{margin-bottom:.9rem;}
 
 .intro{padding:clamp(1.2rem,5vh,3.4rem) 0 .4rem;display:flex;flex-direction:column;gap:.9rem;}
 .intro h1{font-family:var(--display);font-weight:800;letter-spacing:-.03em;line-height:1.04;
@@ -312,6 +333,19 @@ main{flex:1;width:100%;}
 :root[data-etapa="hilo"] .manija{display:block;}
 :root[data-etapa="hilo"] .dock.revelar .manija,
 :root[data-etapa="hilo"] .dock:hover .manija{opacity:0;}
+
+/* ---- caja de chat de la landing ----
+   En el inicio el chat es una caja alta con el botón abajo a la derecha, no
+   una píldora: invita a escribir una frase, no dos palabras. Con resultados
+   en pantalla vuelve a ser la barra compacta de siempre. */
+:root[data-etapa="inicio"] .dock form{
+  flex-direction:column;align-items:stretch;gap:0;
+  border-radius:1.1rem;padding:1rem 1.1rem .7rem;min-height:8.2rem;
+  max-width:min(680px,100%);}
+:root[data-etapa="inicio"] .dock input{font-size:1.06rem;padding:0;flex:1;}
+:root[data-etapa="inicio"] .dock form::after{display:none;}
+:root[data-etapa="inicio"] .send{align-self:flex-end;margin-top:auto;}
+:root[data-etapa="inicio"] .fila-chat{justify-content:center;}
 
 /* ---- el chat como centro: salto, tipeo y espera ---- */
 .dock form{transition:transform .22s cubic-bezier(.16,1,.3,1),border-color .16s;}
@@ -554,11 +588,13 @@ main{flex:1;width:100%;}
 
 <header>
   <div class="bar">
-    <span class="wordmark">Fad<i>IA</i></span>
-    <div class="modos" role="group" aria-label="Tipo de compra">
-      <button class="modo" data-modo="marcas" aria-pressed="true">Marcas</button>
+    <nav class="nav" aria-label="Secciones">
+      <button class="modo" data-vista="explorar" aria-pressed="false">Explorar</button>
+      <button class="modo" data-vista="chat"     aria-pressed="true">Chat</button>
+      <button class="modo" data-vista="favoritos" aria-pressed="false">Favoritos</button>
       <button class="modo" data-modo="mayorista" aria-pressed="false">Por mayor</button>
-    </div>
+    </nav>
+    <span class="wordmark">Fad<i>IA</i></span>
     <span class="estado">
       <b id="n-prod">—</b><span class="u">productos</span>
       <b id="n-marcas">—</b><span class="u">marcas</span>
@@ -573,7 +609,6 @@ main{flex:1;width:100%;}
       <h1 id="titulo"></h1>
       <p id="bajada"></p>
       <p class="nota" id="nota"></p>
-      <div class="seeds" id="seeds"></div>
     </section>
   </div>
 </main>
@@ -603,6 +638,9 @@ main{flex:1;width:100%;}
       <span>Nuevo chat</span>
     </button>
   </div>
+  <!-- Debajo del chat, como en la referencia: primero escribís; si no se te
+       ocurre nada, mirás los ejemplos. -->
+  <div class="seeds" id="seeds"></div>
   <div class="hint" id="hint"></div>
 </div>
 
@@ -680,8 +718,7 @@ let STATS={};
 function pintarModo(){
   const m=MODOS[modo];
   document.documentElement.dataset.modo=modo;
-  document.querySelectorAll('.modo').forEach(b=>
-    b.setAttribute('aria-pressed', String(b.dataset.modo===modo)));
+  pintarNav();
   $('#titulo').textContent=m.titulo;
   $('#bajada').textContent=m.bajada;
   $('#seeds').innerHTML=m.seeds.map(s=>`<button class="seed" type="button">${esc(s)}</button>`).join('');
@@ -705,11 +742,93 @@ $('#generos').addEventListener('click',e=>{
   localStorage.setItem('fadia.genero',genero); pintarGeneros();
 });
 
-document.querySelector('.modos').addEventListener('click',e=>{
+/* ============ navegación ============ */
+/* Cuatro entradas, todas con algo real detrás. "Por mayor" no es una vista
+   sino un cambio de catálogo: se marca sola según el modo activo. */
+let vista='chat';
+
+document.querySelector('.nav').addEventListener('click',e=>{
   const b=e.target.closest('.modo');
-  if(!b||busy||b.dataset.modo===modo) return;
-  modo=b.dataset.modo; hilo=[]; pintarModo();
+  if(!b||busy) return;
+  if(b.dataset.modo){                       // Por mayor: cambia el catálogo
+    if(b.dataset.modo===modo) return;
+    modo=b.dataset.modo; hilo=[]; vista='chat';
+    volverAlInicio(); pintarModo(); pintarNav();
+    return;
+  }
+  if(b.dataset.vista===vista) return;
+  vista=b.dataset.vista;
+  pintarNav();
+  if(vista==='chat')       volverAlInicio();
+  else if(vista==='explorar')  mostrarExplorar();
+  else if(vista==='favoritos') mostrarFavoritos();
 });
+
+function pintarNav(){
+  for(const b of document.querySelectorAll('.nav .modo')){
+    const activo = b.dataset.modo
+      ? modo==='mayorista'
+      : (modo!=='mayorista' && b.dataset.vista===vista);
+    b.setAttribute('aria-pressed',String(activo));
+  }
+}
+
+/* Explorar y Favoritos comparten forma: una grilla sola, sin chat. */
+function pantallaGrilla(titulo,bajada,filas,vacio){
+  volverAlInicio();
+  document.documentElement.setAttribute('data-etapa','hilo');   // chat compacto abajo
+  const i=$('#intro'); if(i) i.hidden=true;
+  turno++;
+  const sec=document.createElement('section');
+  sec.className='turn';
+  sec.innerHTML=`<div class="reply"><div class="prose">
+      <h2 class="pd-tit" style="margin-bottom:.2rem">${esc(titulo)}</h2>
+      <p style="color:var(--muted);font-size:.9rem">${esc(bajada)}</p></div></div>
+    <div class="grid">${filas.length
+      ? filas.map(card).join('')
+      : `<div class="empty">${esc(vacio)}</div>`}</div>`;
+  thread.appendChild(sec);
+  vigilarPlaceholder(sec);
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+/* Explorar: una muestra del catálogo, sin preguntar nada.
+   Con la consulta vacía el orden es alfabético y salen cosas como
+   "1972 Print Tee" y "2000 BLACK": parece roto. Se usa una de las
+   sugerencias del modo, elegida al azar, y así la muestra siempre es
+   coherente y cambia en cada visita. */
+async function mostrarExplorar(){
+  const ejemplos=MODOS[modo].seeds||[];
+  const q=ejemplos.length?ejemplos[Math.floor(Math.random()*ejemplos.length)]:'ropa';
+  const r=await fetch(`${API}/search`,{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({q,limit:24,canal:modo,genero:genero||null})});
+  const d=r.ok?await r.json():{resultados:[]};
+  pantallaGrilla('Explorar', `Una muestra a partir de «${q}». Tocá una prenda para verla.`,
+    d.resultados||[], 'No pude traer el catálogo.');
+}
+
+/* Favoritos: lo que guardaste con el corazón, que vive en este dispositivo. */
+async function mostrarFavoritos(){
+  const uids=[...FAVS];
+  if(!uids.length){
+    pantallaGrilla('Favoritos','Todavía no guardaste nada.',[],
+      'Tocá el corazón de una prenda para guardarla acá.');
+    return;
+  }
+  const filas=[];
+  for(const uid of uids){
+    if(filas.length>=48) break;
+    if(filas.some(f=>f.product_uid===uid)) continue;
+    try{
+      const r=await fetch(`${API}/product/${encodeURIComponent(uid)}`);
+      if(r.ok) filas.push(semillaDeDetalle(await r.json()));
+    }catch{}
+  }
+  pantallaGrilla('Favoritos',
+    `${filas.length} prenda${filas.length===1?'':'s'} guardada${filas.length===1?'':'s'} en este dispositivo.`,
+    filas, 'No pude recuperar lo guardado.');
+}
 
 async function boot(){
   try{
@@ -1263,6 +1382,22 @@ panel.addEventListener('click',e=>{
   }
 });
 
+/* /product devuelve la fila cruda de la base; la grilla y el modal esperan
+   la forma que arma /search. Esta es la traducción, y la usan tanto el link
+   directo como la pantalla de Favoritos. */
+function semillaDeDetalle(d){
+  const url1=x=>typeof x==='string'?x:(x&&x.url)||'';
+  return {
+    product_uid:d.product_uid, title:d.title, url:d.url, brand:d.brand,
+    store_slug:d.store_slug, seller_name:d.seller_name, seller_address:d.seller_address,
+    min_purchase:d.min_purchase, min_qty:d.min_qty, min_unit:d.min_unit,
+    sizes_available:d.sizes_available||[], colors_available:d.colors_available||[],
+    images:(d.images||[]).map(url1).filter(Boolean), description:d.description,
+    price:(d.price_min_cents??0)/100,
+    price_retail:d.price_retail_cents!=null?d.price_retail_cents/100:null,
+  };
+}
+
 /* Abrir por link directo: /?p=<producto>&v=<variante>. Sin fila de búsqueda
    hay que armar la semilla desde el propio detalle. */
 async function abrirDesdeURL(){
@@ -1271,17 +1406,7 @@ async function abrirDesdeURL(){
   try{
     const r=await fetch(`${API}/product/${encodeURIComponent(uid)}`);
     if(!r.ok) return;
-    const d=await r.json();
-    const url1=x=>typeof x==='string'?x:(x&&x.url)||'';
-    const semilla={
-      product_uid:d.product_uid, title:d.title, url:d.url, brand:d.brand,
-      store_slug:d.store_slug, seller_name:d.seller_name, seller_address:d.seller_address,
-      min_purchase:d.min_purchase, min_qty:d.min_qty, min_unit:d.min_unit,
-      sizes_available:d.sizes_available||[], colors_available:d.colors_available||[],
-      images:(d.images||[]).map(url1).filter(Boolean), description:d.description,
-      price:(d.price_min_cents??0)/100,
-      price_retail:d.price_retail_cents!=null?d.price_retail_cents/100:null,
-    };
+    const semilla=semillaDeDetalle(await r.json());
     filas.set(uid,semilla);
     abrirPanel(uid,semilla,{variante:u.searchParams.get('v'),desdeURL:true});
   }catch{}
@@ -1597,12 +1722,58 @@ function pintarHilo(){
   pintarPlaceholder();
 }
 
+/* ============ placeholder que se escribe solo ============ */
+/* En la landing el placeholder va tipeando ejemplos, uno tras otro: muestra
+   de qué se le puede hablar sin ocupar espacio con una lista. Los ejemplos
+   son las mismas sugerencias del modo, así que no hay un segundo texto que
+   mantener sincronizado.
+
+   Se frena en cuanto el usuario toca el campo: competir con lo que está
+   escribiendo sería insoportable. */
+const ESCRIBE=52, BORRA=26, ESPERA=1700;
+let cicloPlaceholder=null;
+
+function pararPlaceholder(){
+  if(cicloPlaceholder){ clearTimeout(cicloPlaceholder); cicloPlaceholder=null; }
+}
+
+function animarPlaceholder(){
+  pararPlaceholder();
+  const q=$('#q');
+  const ejemplos=(MODOS[modo].seeds||[]).slice(0,6);
+  if(QUIETO.matches||!ejemplos.length){ q.placeholder=MODOS[modo].placeholder; return; }
+
+  let i=0, n=0, borrando=false;
+  const paso=()=>{
+    /* Si el usuario escribió, enfocó, o dejamos la landing, se apaga. */
+    if(document.documentElement.dataset.etapa!=='inicio'
+       || q.value || document.activeElement===q){ pararPlaceholder(); return; }
+    const txt=ejemplos[i];
+    n += borrando ? -1 : 1;
+    q.placeholder=txt.slice(0,n)+(borrando?'':'|');
+    let d=borrando?BORRA:ESCRIBE;
+    if(!borrando && n>=txt.length){ borrando=true; d=ESPERA; q.placeholder=txt; }
+    else if(borrando && n<=0){ borrando=false; i=(i+1)%ejemplos.length; d=280; }
+    cicloPlaceholder=setTimeout(paso,d);
+  };
+  paso();
+}
+
 /* Al arrancar, el placeholder propone qué pedir; con resultados en
    pantalla, lo que se hace es refinar. */
 function pintarPlaceholder(){
   const enHilo=document.documentElement.dataset.etapa==='hilo';
-  $('#q').placeholder = enHilo ? 'Escribí para redefinir…' : MODOS[modo].placeholder;
+  if(enHilo){ pararPlaceholder(); $('#q').placeholder='Escribí para redefinir…'; }
+  else animarPlaceholder();
 }
+
+/* Enfocar o escribir corta la animación y deja el texto fijo del modo. */
+for(const ev of ['focus','input']) $('#q').addEventListener(ev,()=>{
+  if(cicloPlaceholder){ pararPlaceholder(); $('#q').placeholder=MODOS[modo].placeholder; }
+});
+$('#q').addEventListener('blur',()=>{
+  if(!$('#q').value && document.documentElement.dataset.etapa==='inicio') animarPlaceholder();
+});
 $('#hilo-nuevo').addEventListener('click',()=>{
   hilo=[]; pintarHilo(); volverAlInicio(); $('#q').focus();
 });
