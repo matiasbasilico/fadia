@@ -66,7 +66,8 @@
 html{scroll-behavior:smooth;}
 /* `[hidden]{display:none}` es una regla del navegador y pierde contra
    cualquier regla de autor que fije `display`. Como acá varios elementos
-   se ocultan con el atributo (#intro, #hilo-info, los chips, el modal) y
+   se ocultan con el atributo (#intro, el botón de chat nuevo, los chips,
+   el modal) y
    además tienen su propio `display:flex`/`grid`, el atributo no servía:
    el modal cerrado se comía los toques en mobile y "empezar de cero"
    aparecía en la pantalla de inicio. Esto lo vuelve confiable de una vez. */
@@ -232,11 +233,30 @@ main{flex:1;width:100%;}
 .gen[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink);
   font-weight:600;}
 .gen:active{transform:scale(.96);}
-.hilo-info{max-width:min(600px,100%);margin:0 auto .4rem;display:flex;gap:.5rem;
-  align-items:center;justify-content:center;pointer-events:auto;
-  font-family:var(--mono);font-size:.6rem;color:var(--faint);}
-.hilo-info button{border:none;background:none;color:var(--accent);cursor:pointer;
-  font:inherit;text-decoration:underline;text-underline-offset:2px;padding:0;}
+/* Fila del chat: el input y, a su derecha, el botón de chat nuevo.
+   Reemplaza al "siguiendo N preguntas · empezar de cero", que ocupaba una
+   línea entera para decir algo que el hilo ya muestra. */
+.fila-chat{max-width:min(600px,100%);margin:0 auto;display:flex;align-items:center;gap:.5rem;}
+.fila-chat form{flex:1;min-width:0;margin:0;}
+
+/* Arranca como un círculo con el "+" y se estira al pasarle por encima.
+   El texto no se oculta con display:none —no se podría animar— sino con
+   ancho 0: así el ensanchado es continuo. */
+.nuevo{flex:none;height:2.9rem;padding:0 .85rem;border-radius:999px;
+  border:1px solid var(--rule-2);background:var(--surface);color:var(--ink-2);
+  cursor:pointer;display:flex;align-items:center;gap:0;white-space:nowrap;
+  font:inherit;font-size:.84rem;box-shadow:var(--shadow);pointer-events:auto;
+  transition:gap .22s cubic-bezier(.16,1,.3,1),border-color .16s,color .16s,background .16s;}
+.nuevo svg{flex:none;}
+.nuevo span{max-width:0;overflow:hidden;opacity:0;
+  transition:max-width .26s cubic-bezier(.16,1,.3,1),opacity .18s;}
+@media (hover:hover){
+  .nuevo:hover{border-color:var(--ink);color:var(--ink);gap:.4rem;}
+  .nuevo:hover span{max-width:7rem;opacity:1;}
+}
+.nuevo:focus-visible{gap:.4rem;}
+.nuevo:focus-visible span{max-width:7rem;opacity:1;}
+.nuevo:active{transform:scale(.96);}
 .dock form{max-width:min(600px,100%);margin:0 auto;display:flex;align-items:center;gap:.4rem;
   background:var(--surface);border:1px solid var(--rule-2);border-radius:999px;
   padding:.34rem .34rem .34rem 1rem;box-shadow:var(--lift);pointer-events:auto;}
@@ -345,11 +365,6 @@ main{flex:1;width:100%;}
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;
   animation:esc-borde 1.6s linear infinite;animation-delay:var(--d);}
-.esc-etq{position:absolute;right:.5rem;top:.5rem;z-index:4;
-  font-family:var(--mono);font-size:.58rem;
-  font-weight:700;letter-spacing:.04em;color:var(--accent);
-  background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(6px);
-  padding:.16rem .5rem;border-radius:999px;border:1px solid var(--accent-soft);}
 @keyframes esc-in{from{opacity:0;}to{opacity:1;}}
 @keyframes esc-borde{0%{background-position:0% 0;}100%{background-position:200% 0;}}
 
@@ -553,18 +568,22 @@ main{flex:1;width:100%;}
 
 <div class="dock" id="dock">
   <div class="generos replegable" id="generos" role="group" aria-label="Segmento"></div>
-  <div class="hilo-info replegable" id="hilo-info" hidden>
-    <span id="hilo-n"></span>
-    <button type="button" id="hilo-nuevo">empezar de cero</button>
-  </div>
   <span class="manija" aria-hidden="true"></span>
-  <form id="form">
-    <input id="q" autocomplete="off" enterkeyhint="search" placeholder="…">
-    <button class="send" id="send" type="submit" aria-label="Buscar">
+  <div class="fila-chat">
+    <form id="form">
+      <input id="q" autocomplete="off" enterkeyhint="search" placeholder="…">
+      <button class="send" id="send" type="submit" aria-label="Buscar">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+    </form>
+    <button class="nuevo" id="hilo-nuevo" type="button" hidden
+            aria-label="Empezar un chat nuevo" title="Empezar un chat nuevo">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+           stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>Nuevo chat</span>
     </button>
-  </form>
+  </div>
   <div class="hint" id="hint"></div>
 </div>
 
@@ -646,13 +665,13 @@ function pintarModo(){
     b.setAttribute('aria-pressed', String(b.dataset.modo===modo)));
   $('#titulo').textContent=m.titulo;
   $('#bajada').textContent=m.bajada;
-  $('#q').placeholder=m.placeholder;
   $('#seeds').innerHTML=m.seeds.map(s=>`<button class="seed" type="button">${esc(s)}</button>`).join('');
   const n=(STATS.porCanal||{})[modo];
   $('#nota').textContent=n!=null
     ? `${n.toLocaleString('es-AR')} publicaciones en este modo.`
     : '';
   localStorage.setItem('fadia.modo',modo);
+  pintarPlaceholder();
   pintarGeneros();
 }
 
@@ -678,7 +697,7 @@ async function boot(){
     const h=await(await fetch(API+'/health')).json();
     $('#dot').className='dot '+(h.db.ok&&h.lmstudio.ok?'on':'off');
     $('#modelo').textContent=(h.models?.chat||'').split('/').pop()||'modelo';
-    $('#hint').textContent=h.lmstudio?.avisos?.length?h.lmstudio.avisos[0]:'los precios y talles salen de la base, no del modelo';
+    $('#hint').textContent=h.lmstudio?.avisos?.length?h.lmstudio.avisos[0]:'FadIA no vende: muestra lo que la tienda publica';
   }catch{ $('#dot').className='dot off'; $('#modelo').textContent='sin conexión'; }
   try{
     const s=await(await fetch(API+'/stats')).json();
@@ -1277,7 +1296,7 @@ function imprimir(grid){
   setTimeout(()=>{ linea.remove(); grid.classList.remove('imprimiendo'); },900);
 }
 
-function escanear(grid,n){
+function escanear(grid){
   if(QUIETO.matches) return;
   apagarEscaner(grid);
   grid.classList.add('leyendo');
@@ -1290,18 +1309,11 @@ function escanear(grid,n){
     ov.setAttribute('aria-hidden','true');
     c.appendChild(ov);
   }
-  /* La etiqueta sigue siendo una sola: es estado, no animación. Repetirla en
-     cada tarjeta taparía la foto. */
-  const et=document.createElement('span');
-  et.className='esc-etq';
-  et.setAttribute('aria-hidden','true');
-  et.textContent=`leyendo ${n} producto${n===1?'':'s'}…`;
-  grid.appendChild(et);
 }
 
 function apagarEscaner(grid){
   grid.classList.remove('leyendo');
-  grid.querySelectorAll('.escaner,.esc-etq').forEach(e=>e.remove());
+  grid.querySelectorAll('.escaner').forEach(e=>e.remove());
 }
 
 function md(t){
@@ -1412,7 +1424,9 @@ function cercaDelDock(si){
 window.addEventListener('pointermove',e=>{
   if(e.pointerType==='touch') return;                 // en táctil manda la pulsación larga
   if(document.documentElement.dataset.etapa!=='hilo') return;
-  const f=$('#form').getBoundingClientRect();
+  /* La fila entera, no solo el form: el botón de chat nuevo va al lado y
+     también tiene que mantener los controles abiertos. */
+  const f=$('.fila-chat').getBoundingClientRect();
   cercaDelDock(e.clientX>=f.left-MARGEN_X && e.clientX<=f.right+MARGEN_X
             && e.clientY>=f.top-ALTO_ZONA && e.clientY<=innerHeight);
 },{passive:true});
@@ -1445,6 +1459,7 @@ async function preguntar(q){
   /* A partir de acá el chat deja de estar al centro y pasa a barra fija, y
      los controles de arriba se repliegan. */
   document.documentElement.setAttribute('data-etapa','hilo');
+  pintarPlaceholder();
   $('#form').classList.add('pensando');
   turno++;
 
@@ -1489,7 +1504,7 @@ async function preguntar(q){
           vigilarPlaceholder(grid);
           if(d.resultados.length){
             imprimir(grid);
-            escanear(grid,d.resultados.length);
+            escanear(grid);
           }
           chips.hidden=false;
           if(d.aflojados?.length) chips.insertAdjacentHTML('beforeend',
@@ -1532,10 +1547,18 @@ async function preguntar(q){
   }
 }
 
+/* El botón de chat nuevo aparece recién cuando hay algo que reiniciar.
+   El contador de preguntas se fue: el hilo en pantalla ya lo muestra. */
 function pintarHilo(){
-  const n=hilo.length;
-  $('#hilo-info').hidden = n===0;
-  $('#hilo-n').textContent = n===1 ? 'siguiendo 1 pregunta' : `siguiendo ${n} preguntas`;
+  $('#hilo-nuevo').hidden = hilo.length===0;
+  pintarPlaceholder();
+}
+
+/* Al arrancar, el placeholder propone qué pedir; con resultados en
+   pantalla, lo que se hace es refinar. */
+function pintarPlaceholder(){
+  const enHilo=document.documentElement.dataset.etapa==='hilo';
+  $('#q').placeholder = enHilo ? 'Escribí para redefinir…' : MODOS[modo].placeholder;
 }
 $('#hilo-nuevo').addEventListener('click',()=>{
   hilo=[]; pintarHilo(); volverAlInicio(); $('#q').focus();
