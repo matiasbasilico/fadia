@@ -289,7 +289,8 @@ class SearchService:
     RELAX_ORDER = ("detalle", "tela", "color", "size", "category", "store", "min_cents")
 
     def search_relaxed(self, *, embedding: list[float] | None, filters: Filters,
-                       text: str = "", limit: int = 12) -> tuple[list[dict], list[str]]:
+                       text: str = "", limit: int = 12,
+                       offset: int = 0) -> tuple[list[dict], list[str]]:
         """Busca con todo; si no hay nada, va soltando filtros de a uno.
 
         Una consulta razonable como "vestido negro talle 40 menos de 30 lucas"
@@ -297,7 +298,8 @@ class SearchService:
         por producto. Devolver una pantalla vacía es peor que devolver algo
         pertinente diciendo qué se aflojó.
         """
-        rows = self.search(embedding=embedding, filters=filters, text=text, limit=limit)
+        rows = self.search(embedding=embedding, filters=filters, text=text,
+                           limit=limit, offset=offset)
         if rows:
             return rows, []
 
@@ -314,7 +316,7 @@ class SearchService:
         return rows, aflojados
 
     def search(self, *, embedding: list[float] | None, filters: Filters,
-               text: str = "", limit: int = 12) -> list[dict]:
+               text: str = "", limit: int = 12, offset: int = 0) -> list[dict]:
         where: list[sql.Composable] = []
         params: list = []
 
@@ -404,7 +406,8 @@ class SearchService:
         )
         # DISTINCT ON obliga a que el ORDER BY empiece por sus claves, lo que
         # rompe el orden por relevancia. Se envuelve para recuperarlo.
-        query = sql.SQL("SELECT * FROM ({q}) t ORDER BY t.distancia {dir} LIMIT %s").format(
+        query = sql.SQL(
+            "SELECT * FROM ({q}) t ORDER BY t.distancia {dir} LIMIT %s OFFSET %s").format(
             q=query, dir=sql.SQL("ASC" if embedding is not None else "DESC"))
 
         with self.pool.connection() as conn:
@@ -423,7 +426,8 @@ class SearchService:
                 conn.execute("SET LOCAL hnsw.iterative_scan = relaxed_order")
                 conn.execute("SET LOCAL hnsw.ef_search = 200")
             rows = conn.execute(
-                query, score_params + params + order_params + [limit * 4, limit]).fetchall()
+                query, score_params + params + order_params
+                + [(limit + offset) * 4, limit, offset]).fetchall()
 
         for r in rows:
             imgs = r.get("images") or []

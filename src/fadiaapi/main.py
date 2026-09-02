@@ -104,6 +104,9 @@ class ChatRequest(BaseModel):
 class SearchRequest(BaseModel):
     q: str = Field(default="", max_length=300)
     limit: int = Field(default=12, ge=1, le=48)
+    # Paginación para el scroll infinito de Explorar. Topado: más allá de
+    # unos cientos de filas la relevancia ya no significa nada.
+    offset: int = Field(default=0, ge=0, le=600)
     canal: str | None = Field(default=None, pattern="^(mayorista|marcas)$")
     genero: str | None = Field(default=None, pattern="^(women|men|kids|sin)$")
 
@@ -140,7 +143,8 @@ async def search(req: SearchRequest) -> dict:
         except Exception:                           # noqa: BLE001
             emb = None                              # sin LM Studio, cae a trigrama
     rows, aflojados = state["search"].search_relaxed(
-        embedding=emb, filters=filters, text=req.q, limit=req.limit)
+        embedding=emb, filters=filters, text=req.q,
+        limit=req.limit, offset=req.offset)
     return {"filtros": filters.applied, "aflojados": aflojados,
             "modo": "semantico" if emb else "texto", "resultados": rows}
 
