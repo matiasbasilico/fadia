@@ -1,0 +1,57 @@
+name: fadia
+
+# LM Studio corre en el HOST (no en Docker): tiene los modelos ya
+# descargados y acceso a la GPU de la Mac, que un contenedor Linux no
+# puede usar. Los servicios le hablan por host.docker.internal.
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: fadia
+      POSTGRES_USER: fadia
+      POSTGRES_PASSWORD: fadia
+    ports:
+      - "5433:5432"          # 5433 afuera: no pisar un Postgres local
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./src/fadia/storage/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fadia -d fadia"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    environment:
+      DATABASE_URL: postgresql://fadia:fadia@db:5432/fadia
+      LMSTUDIO_URL: http://host.docker.internal:1234/v1
+      CHAT_MODEL: ${CHAT_MODEL:-google/gemma-4-e4b}
+      EMBED_MODEL: ${EMBED_MODEL:-text-embedding-nomic-embed-text-v1.5}
+      # "none" apaga la cadena de razonamiento de Gemma 4: 29 s -> 6 s
+      REASONING_EFFORT: ${REASONING_EFFORT:-none}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data:ro          # ingerir sin reconstruir la imagen
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: nginx:alpine
+    ports:
+      - "5173:80"
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

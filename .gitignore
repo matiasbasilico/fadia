@@ -1,0 +1,13 @@
+# entorno
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+
+# datos crudos y volcados: 3,4 GB de JSONL y dumps de la base.
+# Se regeneran con `make restore` o volviendo a cosechar.
+data/
+
+# el modelo no se versiona: corre en LM Studio, en el host
+models/

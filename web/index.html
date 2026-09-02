@@ -1,0 +1,1343 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F7F7F8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121115" media="(prefers-color-scheme: dark)">
+<title>FadIA · moda argentina</title>
+<!-- Favicon embebido: sin archivo aparte no puede caer en el fallback del
+     SPA, que devolvía el index.html entero cuando el navegador pedía
+     /favicon.ico. La F va como trazo y no como <text> porque el favicon se
+     dibuja sin las webfonts de la página. El bloque bordó es el acento de
+     la marca y se lee igual sobre barra clara u oscura. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%238A2B3F'/%3E%3Cpath%20d='M10,7h13v4h-9v3h7v4h-7v7h-4z'%20fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+/* ============ tokens ============ */
+:root{
+  --ground:#F7F7F8; --surface:#FFFFFF; --surface-2:#EFEEF1; --surface-3:#E3E2E7;
+  --ink:#16151A; --ink-2:#46434D; --muted:#797580; --faint:#A5A1AC;
+  --rule:#E2E1E6; --rule-2:#D3D1D9;
+  --ok:#2E7355; --warn:#8C6212; --warn-bg:#F7EDDA;
+  --shadow:0 1px 2px rgba(20,18,24,.05),0 8px 24px -12px rgba(20,18,24,.14);
+  --lift:0 2px 6px rgba(20,18,24,.07),0 16px 40px -16px rgba(20,18,24,.22);
+  --display:"Bricolage Grotesque",system-ui,sans-serif;
+  --prose:"Source Serif 4",Georgia,serif;
+  --ui:"Public Sans",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --col:min(980px,100%);
+  --gut:clamp(.85rem,4vw,1.6rem);
+  --safe:env(safe-area-inset-bottom,0px);
+  /* el acento lo define el modo */
+  --accent:#8A2B3F; --accent-soft:#F5E7EA; --accent-ink:#FFFFFF;
+}
+/* modo MARCAS: registro más editorial y frío */
+:root[data-modo="marcas"]{ --accent:#2F4C7A; --accent-soft:#E4EAF3; --accent-ink:#FFFFFF; }
+
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#121115; --surface:#1A191F; --surface-2:#232128; --surface-3:#2E2C35;
+  --ink:#EFEEF3; --ink-2:#C6C2CD; --muted:#948F9D; --faint:#6D6877;
+  --rule:#2C2A33; --rule-2:#3A3742;
+  --ok:#6FC49B; --warn:#D6A85C; --warn-bg:#332818;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  --lift:0 2px 6px rgba(0,0,0,.45),0 16px 40px -16px rgba(0,0,0,.7);
+  --accent:#E58EA0; --accent-soft:#3B222A; --accent-ink:#1A191F;
+}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"])[data-modo="marcas"]{
+  --accent:#8FB2E0; --accent-soft:#1E2A3D; --accent-ink:#1A191F;
+}}
+:root[data-theme="dark"]{
+  --ground:#121115; --surface:#1A191F; --surface-2:#232128; --surface-3:#2E2C35;
+  --ink:#EFEEF3; --ink-2:#C6C2CD; --muted:#948F9D; --faint:#6D6877;
+  --rule:#2C2A33; --rule-2:#3A3742;
+  --ok:#6FC49B; --warn:#D6A85C; --warn-bg:#332818;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  --lift:0 2px 6px rgba(0,0,0,.45),0 16px 40px -16px rgba(0,0,0,.7);
+  --accent:#E58EA0; --accent-soft:#3B222A; --accent-ink:#1A191F;
+}
+:root[data-theme="dark"][data-modo="marcas"]{
+  --accent:#8FB2E0; --accent-soft:#1E2A3D; --accent-ink:#1A191F;
+}
+
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{background:var(--ground);color:var(--ink);font-family:var(--ui);font-size:15px;
+  line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100dvh;
+  display:flex;flex-direction:column;overflow-x:hidden;}
+button,input{font:inherit;color:inherit;}
+a{color:inherit;text-decoration:none;}
+
+/* ============ barra ============ */
+header{position:sticky;top:0;z-index:40;
+  background:color-mix(in srgb,var(--ground) 90%,transparent);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--rule);}
+.bar{max-width:var(--col);margin:0 auto;padding:.55rem var(--gut);
+  display:flex;align-items:center;gap:.7rem;}
+.wordmark{font-family:var(--display);font-weight:800;font-size:1.02rem;letter-spacing:-.03em;flex:none;}
+.wordmark i{font-style:normal;color:var(--accent);}
+
+/* selector de modo: la decisión más importante de la pantalla */
+.modos{display:flex;gap:2px;padding:2px;background:var(--surface-2);border-radius:999px;flex:none;}
+.modo{border:none;background:transparent;border-radius:999px;cursor:pointer;
+  padding:.3rem .72rem;font-size:.78rem;font-weight:500;color:var(--muted);
+  white-space:nowrap;transition:.14s;}
+.modo[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font-weight:600;}
+.estado{margin-left:auto;display:flex;align-items:baseline;gap:.32rem;
+  font-family:var(--mono);font-size:.64rem;color:var(--muted);white-space:nowrap;}
+.estado b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums;}
+.estado .u{margin-right:.5rem;}
+/* En pantallas chicas los contadores importan más que el nombre del
+   modelo: se esconde ese, no los números. */
+@media (max-width:640px){ .estado #modelo{display:none;} }
+@media (max-width:430px){ .estado .u{display:none;} }
+.dot{width:.4rem;height:.4rem;border-radius:50%;background:var(--faint);flex:none;}
+.dot.on{background:var(--ok);} .dot.off{background:var(--accent);}
+
+
+/* ============ hilo ============ */
+main{flex:1;width:100%;}
+.thread{max-width:var(--col);margin:0 auto;
+  padding:1.2rem var(--gut) calc(11rem + var(--safe));
+  display:flex;flex-direction:column;gap:2.2rem;}
+
+.intro{padding:clamp(1.2rem,5vh,3.4rem) 0 .4rem;display:flex;flex-direction:column;gap:.9rem;}
+.intro h1{font-family:var(--display);font-weight:800;letter-spacing:-.03em;line-height:1.04;
+  font-size:clamp(1.75rem,1.2rem+3.2vw,3rem);max-width:17ch;}
+.intro p{font-family:var(--prose);font-size:clamp(.98rem,.94rem+.3vw,1.12rem);
+  color:var(--ink-2);max-width:50ch;}
+.intro .nota{font-family:var(--ui);font-size:.8rem;color:var(--muted);}
+.seeds{display:flex;gap:.45rem;margin-top:.5rem;overflow-x:auto;padding-bottom:.3rem;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.seeds::-webkit-scrollbar{display:none;}
+.seed{font-size:.82rem;padding:.45rem .8rem;border:1px solid var(--rule-2);border-radius:999px;
+  background:var(--surface);cursor:pointer;color:var(--ink-2);white-space:nowrap;flex:none;transition:.14s;}
+.seed:active,.seed:hover{border-color:var(--accent);color:var(--accent);}
+@media (min-width:720px){ .seeds{flex-wrap:wrap;overflow:visible;} }
+
+/* turno */
+.turn{display:flex;flex-direction:column;gap:.85rem;scroll-margin-top:4.2rem;}
+.ask{align-self:flex-end;max-width:min(32rem,90%);background:var(--ink);color:var(--ground);
+  padding:.55rem .9rem;border-radius:1rem .28rem 1rem 1rem;font-size:.93rem;}
+.reply{display:grid;grid-template-columns:auto 1fr;gap:.65rem;align-items:start;max-width:44rem;}
+.mark{width:1.2rem;height:1.2rem;flex:none;margin-top:.22rem;color:var(--accent);}
+.prose{font-family:var(--prose);font-size:1rem;line-height:1.58;}
+.prose p+p{margin-top:.55rem;}
+.cite{font-family:var(--mono);font-size:.76em;color:var(--accent);background:var(--accent-soft);
+  padding:.06em .3em;border-radius:.25em;cursor:pointer;}
+
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;}
+.chip{font-family:var(--mono);font-size:.63rem;padding:.22rem .48rem;border-radius:999px;
+  background:var(--surface-2);color:var(--ink-2);}
+.chip.soft{background:transparent;border:1px solid var(--rule-2);color:var(--muted);}
+.chip.warn{background:var(--warn-bg);color:var(--warn);}
+.eje{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--faint);align-self:center;margin-left:.3rem;flex:none;}
+.eje:first-child{margin-left:0;}
+.refine{display:flex;gap:.4rem;overflow-x:auto;scrollbar-width:none;padding-bottom:.2rem;}
+.refine::-webkit-scrollbar{display:none;}
+.chip.act{cursor:pointer;background:var(--surface);border:1px solid var(--rule-2);
+  font-family:var(--ui);font-size:.78rem;padding:.36rem .72rem;color:var(--ink-2);
+  white-space:nowrap;flex:none;}
+.chip.act:active,.chip.act:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ============ grilla ============ */
+/* mobile-first: 2 columnas desde 320px */
+.grid{display:grid;gap:.6rem;grid-template-columns:repeat(2,minmax(0,1fr));}
+@media (min-width:600px){ .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;} }
+@media (min-width:860px){ .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:.9rem;} }
+
+.card{position:relative;display:flex;flex-direction:column;background:var(--surface);
+  border:1px solid var(--rule);border-radius:.65rem;overflow:hidden;
+  transition:box-shadow .16s,transform .16s,border-color .16s;}
+/* Entrada escalonada: la grilla se dibuja de a una tarjeta en vez de
+   aparecer entera. 8 tarjetas × 40 ms = 320 ms, que es justo el hueco
+   entre que llegan los resultados y que el modelo escribe la primera
+   palabra. El `backwards` evita el destello del estado final. */
+.card{animation:card-in .34s cubic-bezier(.16,1,.3,1) backwards;
+  animation-delay:calc(var(--i,0) * 40ms);}
+@keyframes card-in{
+  from{opacity:0;transform:translateY(10px) scale(.985);}
+  to{opacity:1;transform:none;}}
+.card.hl{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft),var(--lift);}
+@media (hover:hover){
+  .card:hover{box-shadow:var(--lift);transform:translateY(-3px);border-color:var(--rule-2);}
+}
+.card:active{transform:scale(.985);}
+
+.shot{position:relative;aspect-ratio:3/4;background:var(--surface-2);overflow:hidden;}
+.shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .25s;}
+.shot img.alt{opacity:0;}
+@media (hover:hover){ .card:hover .shot img.alt{opacity:1;} }
+.shot .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--faint);
+  font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;}
+.rank{position:absolute;top:.35rem;left:.35rem;font-family:var(--mono);font-size:.58rem;
+  font-weight:700;background:var(--ink);color:var(--ground);padding:.1rem .3rem;border-radius:.22rem;}
+.fav{position:absolute;top:.28rem;right:.28rem;width:2rem;height:2rem;border-radius:50%;
+  border:none;background:color-mix(in srgb,var(--surface) 80%,transparent);backdrop-filter:blur(6px);
+  display:grid;place-items:center;cursor:pointer;color:var(--ink-2);transition:.14s;}
+.fav.on{color:var(--accent);}
+@media (hover:hover){ .fav{opacity:0;} .card:hover .fav,.fav.on{opacity:1;} }
+.go{position:absolute;left:.35rem;right:.35rem;bottom:.35rem;border-radius:.35rem;
+  background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(8px);
+  padding:.3rem;font-size:.68rem;text-align:center;font-weight:500;
+  opacity:0;transform:translateY(4px);transition:.16s;}
+@media (hover:hover){ .card:hover .go{opacity:1;transform:none;} }
+
+.info{padding:.48rem .55rem .6rem;display:flex;flex-direction:column;gap:.18rem;flex:1;}
+.who{font-family:var(--prose);font-size:.78rem;font-weight:600;line-height:1.2;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.what{font-size:.72rem;color:var(--muted);line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.money{display:flex;align-items:baseline;gap:.35rem;flex-wrap:wrap;margin-top:.12rem;}
+.money .now{font-family:var(--mono);font-weight:700;font-size:.88rem;font-variant-numeric:tabular-nums;}
+.money .menor{font-family:var(--mono);font-size:.64rem;color:var(--muted);}
+.badges{display:flex;flex-wrap:wrap;gap:.2rem;margin-top:.16rem;}
+.b{font-family:var(--mono);font-size:.56rem;padding:.08rem .26rem;border-radius:.2rem;
+  background:var(--surface-2);color:var(--muted);}
+.b.curva{background:var(--warn-bg);color:var(--warn);}
+.where{font-size:.64rem;color:var(--faint);margin-top:auto;padding-top:.26rem;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ============ input flotante ============ */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:50;pointer-events:none;
+  padding:1rem var(--gut) calc(.9rem + var(--safe));
+  background:linear-gradient(to top,var(--ground) 58%,transparent);}
+.generos{max-width:min(600px,100%);margin:0 auto .5rem;display:flex;gap:.3rem;
+  justify-content:center;pointer-events:auto;overflow-x:auto;scrollbar-width:none;}
+.generos::-webkit-scrollbar{display:none;}
+.gen{border:1px solid var(--rule-2);background:var(--surface);border-radius:999px;
+  padding:.3rem .7rem;font-size:.76rem;color:var(--muted);cursor:pointer;
+  white-space:nowrap;flex:none;transition:.14s;}
+.gen[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink);
+  font-weight:600;}
+.gen:active{transform:scale(.96);}
+.hilo-info{max-width:min(600px,100%);margin:0 auto .4rem;display:flex;gap:.5rem;
+  align-items:center;justify-content:center;pointer-events:auto;
+  font-family:var(--mono);font-size:.6rem;color:var(--faint);}
+.hilo-info button{border:none;background:none;color:var(--accent);cursor:pointer;
+  font:inherit;text-decoration:underline;text-underline-offset:2px;padding:0;}
+.dock form{max-width:min(600px,100%);margin:0 auto;display:flex;align-items:center;gap:.4rem;
+  background:var(--surface);border:1px solid var(--rule-2);border-radius:999px;
+  padding:.34rem .34rem .34rem 1rem;box-shadow:var(--lift);pointer-events:auto;}
+.dock form:focus-within{border-color:var(--accent);}
+.dock input{flex:1;border:none;outline:none;background:transparent;min-width:0;
+  font-size:16px;}                      /* 16px: evita el zoom automático en iOS */
+.dock input::placeholder{color:var(--faint);}
+.send{width:2.3rem;height:2.3rem;flex:none;border:none;border-radius:50%;background:var(--ink);
+  color:var(--ground);display:grid;place-items:center;cursor:pointer;transition:.14s;}
+.send:active,.send:hover:not(:disabled){background:var(--accent);color:var(--accent-ink);}
+.send:disabled{opacity:.35;}
+.hint{max-width:min(600px,100%);margin:.45rem auto 0;text-align:center;
+  font-family:var(--mono);font-size:.6rem;color:var(--faint);pointer-events:none;}
+
+.pulse{display:inline-block;width:.4rem;height:.4rem;border-radius:50%;background:var(--accent);
+  animation:pulse 1.1s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.25;transform:scale(.8);}50%{opacity:1;transform:scale(1.15);}}
+.skel{border-radius:.65rem;aspect-ratio:3/4.4;
+  background:linear-gradient(100deg,var(--surface-2) 30%,var(--surface-3) 50%,var(--surface-2) 70%);
+  background-size:220% 100%;animation:sweep 1.3s linear infinite;}
+@keyframes sweep{to{background-position:-220% 0;}}
+
+/* ============ escáner de lectura ============ */
+/* Un contorno animado por tarjeta, no uno sobre la grilla: cada prenda se
+   enciende por separado y con retraso propio, así se lee como que el modelo
+   las recorre de a una.
+   Corre sobre las tarjetas YA renderizadas, mientras el modelo las narra:
+   la grilla llega a los ~40 ms y el texto tarda ~1,4 s, así que este es el
+   único tramo con espera real que cubrir. No es decorativo — mientras el
+   contorno gira, Gemma está efectivamente leyendo esas filas. */
+.leyendo{position:relative;}
+/* El retraso sale del mismo --i que ordena la entrada de la tarjeta. Los
+   150 ms de base dejan que la tarjeta termine de dibujarse antes del barrido. */
+.escaner{position:absolute;inset:0;border-radius:inherit;
+  pointer-events:none;z-index:3;
+  --d:calc(150ms + var(--i,0) * 110ms);
+  animation:esc-in .3s ease-out backwards;animation-delay:var(--d);}
+.escaner::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;
+  background:linear-gradient(120deg,var(--accent),var(--rule-2),var(--accent));
+  background-size:200% 100%;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  animation:esc-borde 1.6s linear infinite;animation-delay:var(--d);}
+.esc-etq{position:absolute;right:.5rem;top:.5rem;z-index:4;
+  font-family:var(--mono);font-size:.58rem;
+  font-weight:700;letter-spacing:.04em;color:var(--accent);
+  background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(6px);
+  padding:.16rem .5rem;border-radius:999px;border:1px solid var(--accent-soft);}
+@keyframes esc-in{from{opacity:0;}to{opacity:1;}}
+@keyframes esc-borde{0%{background-position:0% 0;}100%{background-position:200% 0;}}
+
+/* ============ panel de producto ============ */
+/* Hasta ahora la tarjeta era un <a> que te sacaba de FadIA. El endpoint
+   /product ya devolvía variantes e histórico y nadie los leía. */
+.velo{position:fixed;inset:0;z-index:80;background:rgba(10,9,12,.5);
+  backdrop-filter:blur(4px);opacity:0;transition:opacity .2s;}
+.velo.abierto{opacity:1;}
+
+/* Modal centrado. Dos columnas en escritorio (foto | ficha) y una sola
+   apilada en mobile, donde ocupa casi toda la pantalla. */
+.panel{position:fixed;z-index:81;inset:0;margin:auto;
+  width:min(920px,94vw);max-height:min(86vh,760px);height:max-content;
+  background:var(--surface);border:1px solid var(--rule);border-radius:1rem;
+  box-shadow:var(--lift);overflow:hidden;display:grid;
+  opacity:0;transform:scale(.97) translateY(8px);
+  transition:opacity .22s ease-out,transform .26s cubic-bezier(.16,1,.3,1);}
+.panel.abierto{opacity:1;transform:none;}
+/* `[hidden]` del navegador vale display:none, pero es una regla de
+   user-agent y pierde contra cualquier regla de autor: el `display:grid` de
+   arriba la anulaba y el modal cerrado seguía en el DOM, invisible
+   (opacity:0) pero comiéndose todos los toques. En escritorio no se notaba
+   porque vacío colapsa a altura 0; en mobile el media query le fija
+   height:100dvh y tapaba la pantalla entera. */
+.panel[hidden],.velo[hidden]{display:none;}
+.panel{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
+@media (min-width:760px){
+  .panel{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);grid-template-rows:1fr;}
+}
+@media (max-width:759px){
+  .panel{width:100vw;max-height:100dvh;height:100dvh;border-radius:0;border:none;}
+}
+.panel-x{position:absolute;top:.7rem;right:.7rem;z-index:4;width:2.1rem;height:2.1rem;
+  border-radius:50%;border:none;
+  background:color-mix(in srgb,var(--surface) 82%,transparent);backdrop-filter:blur(8px);
+  color:var(--ink-2);display:grid;place-items:center;cursor:pointer;font-size:1rem;line-height:1;
+  transition:.14s;}
+.panel-x:hover{background:var(--ink);color:var(--ground);}
+
+/* Columna de fotos. En escritorio la principal manda y las demás quedan de
+   miniatura debajo; en mobile es un carrusel con snap. */
+.pd-fotos{position:relative;background:var(--surface-2);display:flex;flex-direction:column;
+  min-width:0;min-height:0;}
+/* El envoltorio existe para que las flechas se centren sobre la foto y no
+   sobre el bloque entero: si colgaran de .pd-fotos quedarían corridas por
+   la tira de miniaturas, y adentro de .gal se moverían con el scroll. */
+.gal-wrap{position:relative;flex:1;min-height:0;display:flex;}
+.gal{display:flex;gap:.3rem;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;
+  flex:1;min-height:0;}
+.fl{position:absolute;top:50%;transform:translateY(-50%);z-index:2;
+  width:2.1rem;height:2.1rem;border-radius:50%;border:none;cursor:pointer;
+  background:color-mix(in srgb,var(--surface) 68%,transparent);backdrop-filter:blur(6px);
+  color:var(--ink-2);display:grid;place-items:center;padding:0;
+  opacity:.3;transition:opacity .18s,background .18s;}
+.gal-wrap:hover .fl{opacity:.8;}
+.fl:hover{opacity:1;background:var(--surface);}
+.fl:focus-visible{opacity:1;}
+.fl.prev{left:.5rem;} .fl.next{right:.5rem;}
+.gal{cursor:pointer;}
+/* Señal de pausa: solo aparece cuando el usuario congeló el carrusel a
+   mano, para que se entienda por qué dejó de pasar. */
+.pausa{position:absolute;top:.6rem;left:.6rem;z-index:2;opacity:0;
+  font-size:.6rem;letter-spacing:.1em;color:var(--ink-2);
+  background:color-mix(in srgb,var(--surface) 82%,transparent);backdrop-filter:blur(6px);
+  padding:.22rem .5rem;border-radius:999px;transition:opacity .18s;pointer-events:none;}
+.pausa.visible{opacity:.9;}
+/* Sin hover (táctil) no hay forma de revelarlas: quedan siempre tenues. */
+@media (hover:none){ .fl{opacity:.55;} }
+.gal::-webkit-scrollbar{display:none;}
+.gal img,.gal .ph{flex:none;width:100%;height:100%;min-height:0;object-fit:cover;
+  scroll-snap-align:center;}
+@media (max-width:759px){
+  .pd-fotos{max-height:46dvh;}
+  .gal img,.gal .ph{width:88%;aspect-ratio:3/4;height:auto;}
+}
+.gal .ph{display:grid;place-items:center;color:var(--faint);aspect-ratio:3/4;
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;}
+.minis{flex:none;display:flex;gap:.3rem;padding:.4rem;overflow-x:auto;scrollbar-width:none;
+  background:color-mix(in srgb,var(--surface) 60%,transparent);}
+.minis::-webkit-scrollbar{display:none;}
+.minis button{flex:none;width:3rem;height:4rem;padding:0;border-radius:.3rem;cursor:pointer;
+  border:1.5px solid transparent;background:none;overflow:hidden;opacity:.55;transition:.14s;}
+.minis button[aria-current="true"]{border-color:var(--accent);opacity:1;}
+.minis button:hover{opacity:1;}
+.minis img{width:100%;height:100%;object-fit:cover;display:block;}
+@media (max-width:759px){ .minis{display:none;} }
+
+/* Columna de ficha */
+.pd-ficha{display:flex;flex-direction:column;min-width:0;min-height:0;
+  border-top:1px solid var(--rule);}
+@media (min-width:760px){ .pd-ficha{border-top:none;border-left:1px solid var(--rule);} }
+
+.solapas{flex:none;display:flex;gap:.15rem;padding:.75rem var(--gut) 0;border-bottom:1px solid var(--rule);}
+.solapa{border:none;background:none;cursor:pointer;font:inherit;font-size:.78rem;font-weight:500;
+  color:var(--muted);padding:.4rem .1rem .55rem;margin-right:1.1rem;position:relative;transition:.14s;}
+.solapa[aria-selected="true"]{color:var(--ink);font-weight:600;}
+.solapa[aria-selected="true"]::after{content:'';position:absolute;left:0;right:0;bottom:-1px;
+  height:2px;background:var(--accent);}
+.solapa:hover{color:var(--ink);}
+
+.pd{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  padding:.9rem var(--gut);display:flex;flex-direction:column;gap:.5rem;}
+.pd-marca{font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);}
+.pd-tit{font-family:var(--prose);font-size:1.18rem;font-weight:600;line-height:1.25;}
+.pd-precio{display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;}
+.pd-precio .now{font-family:var(--mono);font-weight:700;font-size:1.25rem;font-variant-numeric:tabular-nums;}
+.pd-precio .menor{font-family:var(--mono);font-size:.7rem;color:var(--muted);}
+.pd-h{font-family:var(--mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--faint);margin-top:.4rem;display:flex;gap:.5rem;align-items:baseline;}
+.pd-h .elegido{color:var(--ink-2);letter-spacing:0;text-transform:none;font-size:.66rem;}
+
+/* Selección de color y talle. Son botones de verdad: cambian la foto, el
+   precio y los talles disponibles, y definen el link que se copia. */
+.opts{display:flex;flex-wrap:wrap;gap:.35rem;}
+/* Hay productos con 21 colores (los bóxers estampados de Eyelit) y casi
+   todos agotados. Sin tope, el bloque de color empuja los talles fuera de
+   la pantalla. Se limita el alto y se scrollea. */
+.opts.muchos{max-height:8.5rem;overflow-y:auto;overscroll-behavior:contain;
+  padding-right:.2rem;}
+.opt{font-family:var(--mono);font-size:.7rem;padding:.3rem .6rem;border-radius:.35rem;
+  border:1px solid var(--rule-2);background:var(--surface);color:var(--ink-2);
+  cursor:pointer;transition:.14s;}
+.opt:hover:not(:disabled){border-color:var(--ink-2);}
+.opt[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink);
+  font-weight:700;}
+.opt:disabled{color:var(--faint);border-color:var(--rule);background:var(--surface-2);
+  text-decoration:line-through;cursor:not-allowed;}
+.opt.color{display:flex;align-items:center;gap:.35rem;}
+.opt.color i{width:.7rem;height:.7rem;border-radius:50%;border:1px solid var(--rule-2);
+  display:block;flex:none;}
+
+.pd-desc{font-family:var(--prose);font-size:.86rem;color:var(--ink-2);line-height:1.55;}
+.pd-meta{display:flex;flex-wrap:wrap;gap:.3rem;}
+.pd-meta .b{font-family:var(--mono);font-size:.58rem;padding:.12rem .35rem;border-radius:.2rem;
+  background:var(--surface-2);color:var(--muted);}
+.pd-baja{font-family:var(--mono);font-size:.62rem;color:var(--ok);
+  background:color-mix(in srgb,var(--ok) 12%,transparent);padding:.2rem .45rem;border-radius:.25rem;
+  align-self:flex-start;}
+
+/* Solapa "dónde comprar": datos de procedencia, no una política de envíos
+   inventada. El catálogo no tiene envíos ni devoluciones estructurados. */
+.dato{display:flex;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--rule);font-size:.84rem;}
+.dato:last-child{border-bottom:none;}
+.dato dt{flex:none;width:7.5rem;color:var(--muted);font-size:.75rem;padding-top:.1rem;}
+.dato dd{margin:0;color:var(--ink-2);min-width:0;overflow-wrap:anywhere;}
+.aviso{font-size:.78rem;color:var(--muted);line-height:1.5;background:var(--surface-2);
+  padding:.6rem .7rem;border-radius:.4rem;margin-top:.3rem;}
+
+.pd-pie{flex:none;display:flex;gap:.4rem;padding:.7rem var(--gut);border-top:1px solid var(--rule);}
+.pd-ir{flex:1;padding:.7rem;border-radius:.5rem;background:var(--ink);
+  color:var(--ground);text-align:center;font-weight:600;font-size:.86rem;text-decoration:none;
+  transition:.14s;}
+.pd-ir:hover{background:var(--accent);color:var(--accent-ink);}
+.pd-copiar{flex:none;width:2.85rem;border-radius:.5rem;border:1px solid var(--rule-2);
+  background:var(--surface);color:var(--ink-2);cursor:pointer;display:grid;place-items:center;
+  transition:.14s;position:relative;}
+.pd-copiar:hover{border-color:var(--ink-2);color:var(--ink);}
+.pd-copiar.ok{border-color:var(--ok);color:var(--ok);}
+.pd-copiar .visto{position:absolute;inset:0;display:grid;place-items:center;
+  background:var(--surface);border-radius:.4rem;font-family:var(--mono);font-size:.6rem;
+  color:var(--ok);}
+.empty{grid-column:1/-1;padding:1.4rem;text-align:center;color:var(--muted);font-size:.88rem;
+  border:1px dashed var(--rule-2);border-radius:.65rem;}
+:where(a,button,input):focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}
+  html{scroll-behavior:auto;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <span class="wordmark">Fad<i>IA</i></span>
+    <div class="modos" role="group" aria-label="Tipo de compra">
+      <button class="modo" data-modo="marcas" aria-pressed="true">Marcas</button>
+      <button class="modo" data-modo="mayorista" aria-pressed="false">Por mayor</button>
+    </div>
+    <span class="estado">
+      <b id="n-prod">—</b><span class="u">productos</span>
+      <b id="n-marcas">—</b><span class="u">marcas</span>
+      <span class="dot" id="dot"></span><span id="modelo">…</span>
+    </span>
+  </div>
+</header>
+
+<main>
+  <div class="thread" id="thread">
+    <section class="intro" id="intro">
+      <h1 id="titulo"></h1>
+      <p id="bajada"></p>
+      <p class="nota" id="nota"></p>
+      <div class="seeds" id="seeds"></div>
+    </section>
+  </div>
+</main>
+
+<div class="velo" id="velo" hidden></div>
+<aside class="panel" id="panel" role="dialog" aria-modal="true" aria-label="Detalle del producto" hidden>
+  <button class="panel-x" id="panel-x" type="button" aria-label="Cerrar">✕</button>
+  <div class="pd-fotos" id="pd-fotos"></div>
+  <div class="pd-ficha" id="pd-ficha"></div>
+</aside>
+
+<div class="dock">
+  <div class="generos" id="generos" role="group" aria-label="Segmento"></div>
+  <div class="hilo-info" id="hilo-info" hidden>
+    <span id="hilo-n"></span>
+    <button type="button" id="hilo-nuevo">empezar de cero</button>
+  </div>
+  <form id="form">
+    <input id="q" autocomplete="off" enterkeyhint="search" placeholder="…">
+    <button class="send" id="send" type="submit" aria-label="Buscar">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </button>
+  </form>
+  <div class="hint" id="hint"></div>
+</div>
+
+<script>
+const API='/api', $=s=>document.querySelector(s);
+const thread=$('#thread'); let busy=false, turno=0;
+/* Hilo de la conversación. Sin esto, "¿y en negro?" llega al modelo sin
+   saber de qué prenda se hablaba, y la respuesta se va por las ramas.
+   Se guardan los últimos 6 intercambios: alcanza para el contexto y
+   mantiene el prompt corto (el modelo tarda más con prompts largos). */
+let hilo=[];
+let modo=localStorage.getItem('fadia.modo')==='mayorista'?'mayorista':'marcas';
+/* El género es un eje aparte del canal: podés comprar por mayor ropa de
+   hombre, o buscar marcas de mujer. Se guardan por separado.
+   "Sin género" no es un descarte: es el ~24 % del catálogo cuya línea la
+   tienda no declara, y merece poder navegarse. */
+const GENEROS=[['','Todo'],['women','Mujer'],['men','Hombre'],['sin','Sin género']];
+let genero=localStorage.getItem('fadia.genero')||'';
+
+/* Las dos experiencias no son un filtro con otro nombre: cambian la
+   intención de compra, y con ella el copy, los ejemplos y qué dato manda
+   en la tarjeta. Por mayor se compra una curva para revender; en marcas
+   se compra una unidad para uno. */
+const MODOS={
+  /* Las sugerencias son de ocasión y prenda, no de presupuesto: nadie
+     empieza a comprar ropa pensando "hasta 25 lucas", empieza pensando
+     "algo para un casamiento". El precio es un refinamiento posterior. */
+  marcas:{
+    titulo:'¿Qué estás buscando?',
+    bajada:'Marcas argentinas con local en shopping. Contame la ocasión, el corte o el color y te traigo lo que hay.',
+    placeholder:'un vestido negro para una cena…',
+    seeds:['un vestido negro para una cena',
+           'algo con brillo para año nuevo',
+           'top de encaje para salir de noche',
+           'un blazer oversize',
+           'jean wide leg de tiro alto',
+           'sandalias para un casamiento de día',
+           'un abrigo largo y liviano'],
+  },
+  mayorista:{
+    titulo:'Comprá por mayor sin recorrer Avellaneda.',
+    bajada:'Locales mayoristas de Av. Avellaneda, Flores. Cada ficha trae el precio por mayor, la curva mínima y la dirección del local.',
+    placeholder:'vestidos de fiesta para revender…',
+    seeds:['vestidos de fiesta para revender',
+           'remeras básicas por curva',
+           'jeans de mujer, ¿cuál es la compra mínima?',
+           'lencería con mínimo bajo',
+           'abrigos de invierno para reventa',
+           'ropa de bebé por mayor'],
+  },
+};
+
+const money=n=>'$'+Math.round(n).toLocaleString('es-AR');
+
+/* La compra mínima es texto libre que tipea cada local: conviven "3",
+   "3 unidades", "venta por curva" y "por unidad solo". Cuando el parser
+   pudo sacar una cantidad se muestra "x3 unidades"; cuando no, se muestra
+   el texto tal cual, cortado en un espacio y sin el "x" que lo volvía
+   ilegible ("xventa por mayor"). */
+function curva(r){
+  if(r.min_qty) return '×'+r.min_qty+(r.min_unit?' '+r.min_unit:'');
+  const t=(r.min_purchase||'').trim();
+  if(!t) return '';
+  if(t.length<=18) return t;
+  const corte=t.slice(0,18).lastIndexOf(' ');
+  return t.slice(0,corte>8?corte:18)+'…';
+}
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// nombres internos de los filtros -> castellano, para los chips
+const ES={size:'talle',color:'color',category:'categoría',store:'tienda',
+          min_cents:'precio mínimo',max_cents:'precio máximo'};
+const MARK=`<svg class="mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.3L20 10l-6.1 1.7L12 18l-1.9-6.3L4 10l6.1-1.7z"/></svg>`;
+let STATS={};
+
+function pintarModo(){
+  const m=MODOS[modo];
+  document.documentElement.dataset.modo=modo;
+  document.querySelectorAll('.modo').forEach(b=>
+    b.setAttribute('aria-pressed', String(b.dataset.modo===modo)));
+  $('#titulo').textContent=m.titulo;
+  $('#bajada').textContent=m.bajada;
+  $('#q').placeholder=m.placeholder;
+  $('#seeds').innerHTML=m.seeds.map(s=>`<button class="seed" type="button">${esc(s)}</button>`).join('');
+  const n=(STATS.porCanal||{})[modo];
+  $('#nota').textContent=n!=null
+    ? `${n.toLocaleString('es-AR')} publicaciones en este modo.`
+    : '';
+  localStorage.setItem('fadia.modo',modo);
+  pintarGeneros();
+}
+
+function pintarGeneros(){
+  $('#generos').innerHTML=GENEROS.map(([v,l])=>
+    `<button class="gen" type="button" data-g="${v}" aria-pressed="${String(v===genero)}">${l}</button>`).join('');
+}
+$('#generos').addEventListener('click',e=>{
+  const b=e.target.closest('.gen');
+  if(!b||busy||b.dataset.g===genero) return;
+  genero=b.dataset.g; hilo=[];
+  localStorage.setItem('fadia.genero',genero); pintarGeneros();
+});
+
+document.querySelector('.modos').addEventListener('click',e=>{
+  const b=e.target.closest('.modo');
+  if(!b||busy||b.dataset.modo===modo) return;
+  modo=b.dataset.modo; hilo=[]; pintarModo();
+});
+
+async function boot(){
+  try{
+    const h=await(await fetch(API+'/health')).json();
+    $('#dot').className='dot '+(h.db.ok&&h.lmstudio.ok?'on':'off');
+    $('#modelo').textContent=(h.models?.chat||'').split('/').pop()||'modelo';
+    $('#hint').textContent=h.lmstudio?.avisos?.length?h.lmstudio.avisos[0]:'los precios y talles salen de la base, no del modelo';
+  }catch{ $('#dot').className='dot off'; $('#modelo').textContent='sin conexión'; }
+  try{
+    const s=await(await fetch(API+'/stats')).json();
+    const may=(s.por_tienda||[]).find(t=>t.store_slug==='avellaneda')?.n||0;
+    STATS.porCanal={mayorista:may, marcas:(s.productos||0)-may};
+    $('#n-prod').textContent=(s.productos||0).toLocaleString('es-AR');
+    $('#n-marcas').textContent=(s.marcas||0).toLocaleString('es-AR');
+  }catch{}
+  pintarModo();
+  abrirDesdeURL();          // /?p=<producto>&v=<variante>
+}
+
+/* ============ fotos al tamaño que se ven ============ */
+/* Las tiendas publican la foto de catálogo entera —1200×1600, a veces más—
+   y nosotros la pintábamos en una tarjeta de 160 px. Medido en frío:
+   VTEX 2671 ms, Shopify 804 ms, Avellaneda 249 ms.
+   Dos CDN aceptan que les pidas el tamaño y ahí se va la mayor parte:
+   VTEX 2671→1040 ms, Shopify 804→431 ms.
+   Tiendanube solo sirve los tamaños que ya generó (pedirle otro da 404) y
+   el CDN de Avellaneda ignora el parámetro, así que a esos se los deja
+   como están: son los livianos de todos modos. */
+function imgChica(url,ancho){
+  if(!url) return url;
+  try{
+    /* Comparar el host parseado, no la URL entera: un `(^|\.)cdn\.shopify`
+       sobre el texto completo nunca coincide, porque antes del host va
+       `//` y no un punto. Shopify quedaba sin achicar y no se notaba
+       —seguía funcionando, solo que pesado. */
+    const u=new URL(url), h=u.host;
+    // VTEX: /arquivos/ids/<id>[-ancho-alto]/archivo.jpg
+    if(h.endsWith('.vteximg.com.br'))
+      return url.replace(/\/arquivos\/ids\/(\d+)(-[\w]+-[\w]+)?\//,
+                         `/arquivos/ids/$1-${ancho}-auto/`);
+    if(h==='cdn.shopify.com'){ u.searchParams.set('width',String(ancho)); return u.toString(); }
+  }catch{}
+  return url;
+}
+/* Anchos pedidos, con margen para pantallas de 2x. La tarjeta mide 160-240
+   CSS px, la foto del modal ~470, la miniatura 48. */
+const ANCHO_TARJETA=400, ANCHO_MODAL=800, ANCHO_MINI=120;
+
+/* Precarga silenciosa: el navegador se queda con la respuesta en su caché,
+   así que cuando el <img> real la pida ya está. */
+const yaPrecargado=new Set();
+function precargar(url){
+  if(!url||yaPrecargado.has(url)) return;
+  yaPrecargado.add(url);
+  const im=new Image(); im.decoding='async'; im.src=url;
+}
+
+/* ============ favoritos ============ */
+/* El corazón existía desde el principio y no hacía nada: togglear una clase
+   que se perdía al recargar. Ahora se guarda por dispositivo. */
+const LLAVE_FAVS='fadia:favoritos';
+const FAVS=new Set((()=>{ try{
+    return JSON.parse(localStorage.getItem(LLAVE_FAVS)||'[]'); }catch{ return []; } })());
+function guardarFavs(){
+  /* Puede fallar en modo privado o con el almacenamiento bloqueado: el
+     corazón sigue andando en la sesión, solo no sobrevive a la recarga. */
+  try{ localStorage.setItem(LLAVE_FAVS,JSON.stringify([...FAVS])); }catch{}
+}
+
+/* Las filas de la búsqueda se guardan para que el panel pueda pintarse al
+   instante con lo que ya se sabe, antes de que conteste /product. */
+const filas=new Map();
+
+function card(r,i){
+  filas.set(r.product_uid,r);
+  const may=r.store_slug==='avellaneda';
+  const imgs=(r.images&&r.images.length?r.images:(r.image?[r.image]:[]))
+    .map(u=>imgChica(u,ANCHO_TARJETA));
+  const shot=imgs.length
+    ? `<img src="${esc(imgs[0])}" alt="" loading="lazy" decoding="async">`+
+      (imgs[1]?`<img class="alt" src="${esc(imgs[1])}" alt="" loading="lazy" decoding="async">`:'')
+    : `<div class="ph">sin foto</div>`;
+
+  // el dato que manda cambia con el modo
+  const badges=[];
+  if(may){ const c=curva(r); if(c) badges.push(`<span class="b curva">${esc(c)}</span>`); }
+  else { (r.sizes_available||[]).slice(0,4).forEach(s=>badges.push(`<span class="b">${esc(s)}</span>`)); }
+
+  const menor=may&&r.price_retail&&r.price_retail>r.price
+    ? `<span class="menor">menor ${money(r.price_retail)}</span>` : '';
+  const donde=may
+    ? (r.seller_address?`${esc(r.seller_address)} · Flores`:'Av. Avellaneda')
+    : esc(r.brand||r.store_slug);
+
+  return `<a class="card" id="c${turno}-${i+1}" style="--i:${i}" data-uid="${esc(r.product_uid)}"
+     href="${esc(r.url)}" target="_blank" rel="noopener">
+    <div class="shot">${shot}<span class="rank">${i+1}</span>
+      <button class="fav${FAVS.has(r.product_uid)?' on':''}" type="button"
+              aria-label="Guardar" aria-pressed="${FAVS.has(r.product_uid)}" data-fav>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 10-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 000-7.8z"/></svg>
+      </button>
+      <span class="go">ver en la tienda ↗</span></div>
+    <div class="info">
+      <span class="who">${esc(may?(r.seller_name||'local'):(r.brand||r.store_slug))}</span>
+      <span class="what">${esc(r.title)}</span>
+      <span class="money"><span class="now">${money(r.price)}</span>${menor}</span>
+      ${badges.length?`<span class="badges">${badges.join('')}</span>`:''}
+      <span class="where">${donde}</span>
+    </div></a>`;
+}
+
+/* ============ panel de producto ============ */
+/* Los talles vienen en el orden en que la tienda declara las variantes, que
+   suele ser arbitrario ("L M S XL"). Se ordenan por la escala real: primero
+   la alfabética, después la numérica, y lo que no cae en ninguna al final. */
+const ESCALA=['XXS','XS','S','M','L','XL','XXL','XXXL','XXXXL'];
+function ordenTalle(t){
+  const k=String(t).toUpperCase().replace(/[\s.]/g,'');
+  const i=ESCALA.indexOf(k);
+  if(i>=0) return [0,i,''];
+  const n=parseFloat(k.replace(',','.'));
+  if(!Number.isNaN(n)) return [1,n,''];
+  return [2,0,k];
+}
+function cmpTalle(a,b){
+  const x=ordenTalle(a), y=ordenTalle(b);
+  return x[0]-y[0] || x[1]-y[1] || x[2].localeCompare(y[2]);
+}
+
+/* Muestra de color para el chip. Solo los nombres que se pueden mapear con
+   confianza llevan punto; el resto queda como texto, que es preferible a
+   pintar un cuadrado de un color que no es. */
+const TINTES=[['negro','#141318'],['blanco','#f4f3f0'],['crudo','#ece2d2'],['beige','#d9c9ae'],
+  ['nude','#e0c1ab'],['gris','#9a979f'],['plata','#b8b8bd'],['rojo','#b83227'],['bordo','#6e2338'],
+  ['coral','#e8735a'],['rosa','#e2a2b4'],['fucsia','#c0357a'],['naranja','#d97b2b'],
+  ['amarillo','#e3c341'],['dorado','#c9a54a'],['oliva','#6b7043'],['verde','#3d7a4e'],
+  ['celeste','#7fb3d5'],['azul','#2c4a8a'],['lila','#b9a0d8'],['violeta','#7d5ba6'],
+  ['marron','#6b4a35'],['camel','#b5895b'],['chocolate','#4d3428']];
+function tinte(nombre){
+  const n=String(nombre).toLowerCase();
+  for(const [clave,hex] of TINTES) if(n.includes(clave)) return hex;
+  return null;
+}
+
+/* La tarjeta sigue siendo un <a> a la tienda: con cmd/ctrl/rueda o desde un
+   lector de pantalla se comporta como siempre. Solo el clic izquierdo simple
+   se intercepta para abrir el modal, así no se pierde nada si esto falla. */
+const panel=$('#panel'), velo=$('#velo');
+const zFotos=$('#pd-fotos'), zFicha=$('#pd-ficha');
+let panelPrevio=null, panelPeticion=0, pushDeModal=false;
+/* Todo el estado del modal en un solo lugar: qué producto, qué detalle
+   llegó, y qué opción eligió el usuario. El link que se copia sale de acá. */
+let pd=null;
+
+function abrirPanel(uid,semilla,opts={}){
+  panelPrevio=document.activeElement;
+  pd={uid, s:semilla, d:null, color:null, talle:null, foto:0, solapa:'detalle',
+      variantePedida:opts.variante||null};
+  panel.hidden=velo.hidden=false;
+  /* Un reflow forzado en vez de requestAnimationFrame: rAF no corre en
+     pestañas en segundo plano y el panel se quedaba fuera de pantalla. */
+  void panel.offsetHeight;
+  panel.classList.add('abierto'); velo.classList.add('abierto');
+  document.body.style.overflow='hidden';
+  pintarModal();                       // primero con lo que ya trae la tarjeta
+  $('#panel-x').focus();
+  /* Si llegamos por link directo ya estamos parados en esa URL: no hay que
+     empujar una entrada nueva, y al cerrar se limpia en vez de volver atrás
+     (en una pestaña recién abierta, `history.back()` te saca del sitio). */
+  if(opts.desdeURL) pushDeModal=false;
+  else sincronizarURL(true);
+
+  const mio=++panelPeticion;
+  fetch(`${API}/product/${encodeURIComponent(uid)}`)
+    .then(r=>r.ok?r.json():null)
+    .then(d=>{
+      if(mio!==panelPeticion||!d||!pd) return;
+      pd.d=d;
+      preseleccionar();
+      pintarModal();
+      sincronizarURL(false);
+    })
+    .catch(()=>{});
+}
+
+function cerrarPanel(){
+  panelPeticion++; pd=null; pararCarrusel();
+  panel.classList.remove('abierto'); velo.classList.remove('abierto');
+  document.body.style.overflow='';
+  setTimeout(()=>{ panel.hidden=velo.hidden=true; zFotos.innerHTML=zFicha.innerHTML=''; },280);
+  panelPrevio?.focus?.();
+  if(pushDeModal){ pushDeModal=false; try{ history.back(); }catch{} }
+  else limpiarURL();
+}
+
+/* ---- variantes: una lista pareja, venga como venga la plataforma ---- */
+function variantes(){
+  return (pd?.d?.variantes||[]).map(v=>({
+    id:v.id,
+    color:v.color_raw||v.color_normalized||null,
+    talle:v.size_raw||v.size_normalized||null,
+    precio:v.price_cents!=null?v.price_cents/100:null,
+    img:v.image_url||null,
+    hay:v.availability!=='out_of_stock'&&v.stock!==0,
+  }));
+}
+const unicos=(xs)=>[...new Set(xs.filter(Boolean))];
+function colores(){ return unicos(variantes().map(v=>v.color)); }
+function talles(){ return unicos(variantes().map(v=>v.talle)).sort(cmpTalle); }
+/* Un talle está disponible dentro del color elegido, no en general: en un
+   producto con 4 colores el talle S puede existir solo en dos. */
+function hayTalle(t){
+  return variantes().some(v=>v.talle===t&&v.hay&&(!pd.color||v.color===pd.color));
+}
+function hayColor(c){ return variantes().some(v=>v.color===c&&v.hay); }
+function elegida(){
+  const vs=variantes();
+  return vs.find(v=>(!pd.color||v.color===pd.color)&&(!pd.talle||v.talle===pd.talle))||null;
+}
+
+/* La preselección arranca en la primera opción con stock: abrir el modal ya
+   posicionado es mejor que obligar a elegir para ver el precio. Si el link
+   traía una variante, manda esa. */
+function preseleccionar(){
+  const vs=variantes();
+  if(!vs.length) return;
+  const pedida=pd.variantePedida&&vs.find(v=>String(v.id)===String(pd.variantePedida));
+  const v=pedida||vs.find(x=>x.hay)||vs[0];
+  if(v.color) pd.color=v.color;
+  if(v.talle) pd.talle=v.talle;
+  if(v.img){
+    const i=fotos().indexOf(v.img);
+    if(i>=0) pd.foto=i;
+  }
+}
+
+function fotos(){
+  /* /search aplana las imágenes a URLs; /product devuelve la columna cruda,
+     que son objetos {url,width,height,position}. Hay que aceptar las dos. */
+  const url1=x=>typeof x==='string'?x:(x&&x.url)||'';
+  const base=(pd?.d?.images?.length?pd.d.images:(pd?.s?.images||[])).map(url1).filter(Boolean);
+  /* Las fotos propias de variante se suman al final si no estaban. */
+  for(const v of variantes()) if(v.img&&!base.includes(v.img)) base.push(v.img);
+  return base.slice(0,8);
+}
+
+/* ---- link directo a la opción ---- */
+function linkDirecto(){
+  const u=new URL(location.href);
+  u.search='';
+  u.searchParams.set('p',pd.uid);
+  const v=elegida();
+  if(v) u.searchParams.set('v',String(v.id));
+  return u.toString();
+}
+function sincronizarURL(esNuevo){
+  if(!pd) return;
+  try{
+    if(esNuevo&&!pushDeModal){ history.pushState({fadia:pd.uid},'',linkDirecto()); pushDeModal=true; }
+    else history.replaceState({fadia:pd.uid},'',linkDirecto());
+  }catch{}
+}
+function limpiarURL(){
+  try{ const u=new URL(location.href);
+    if(u.searchParams.has('p')){ u.search=''; history.replaceState({},'',u.toString()); } }catch{}
+}
+
+async function copiarLink(btn){
+  const link=linkDirecto();
+  let ok=true;
+  try{ await navigator.clipboard.writeText(link); }
+  catch{
+    /* clipboard falla en contextos no seguros; el textarea oculto sigue
+       andando en todos lados. */
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=link; ta.setAttribute('readonly','');
+      ta.style.cssText='position:fixed;top:-999px;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      ok=document.execCommand('copy'); ta.remove();
+    }catch{ ok=false; }
+  }
+  btn.classList.toggle('ok',ok);
+  btn.insertAdjacentHTML('beforeend',
+    `<span class="visto">${ok?'copiado':'error'}</span>`);
+  setTimeout(()=>{ btn.classList.remove('ok'); btn.querySelector('.visto')?.remove(); },1400);
+}
+
+/* ---- pintado ---- */
+function pintarModal(){ if(!pd) return; pintarFotos(); pintarFicha(); }
+
+const FLECHA=(d)=>`<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+  stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+  ><path d="M${d==='prev'?'15 5l-7 7 7 7':'9 5l7 7-7 7'}"/></svg>`;
+
+function pintarFotos(){
+  const fs=fotos().map(u=>imgChica(u,ANCHO_MODAL));
+  /* Sin `lazy`: son 8 fotos como mucho y el carrusel las va a mostrar todas
+     igual. Con lazy, cada salto automático arrancaba la descarga recién en
+     ese momento y contra un CDN de 1 s se veía el parpadeo. */
+  const gal=fs.length
+    ? fs.map((u,i)=>`<img src="${esc(u)}" alt="" decoding="async"
+        ${i===pd.foto?'fetchpriority="high"':''}>`).join('')
+    : `<div class="ph">sin foto</div>`;
+  const flechas=fs.length>1
+    ? `<button class="fl prev" type="button" data-paso="-1" aria-label="Foto anterior">${FLECHA('prev')}</button>
+       <button class="fl next" type="button" data-paso="1" aria-label="Foto siguiente">${FLECHA('next')}</button>
+       <span class="pausa" id="pausa" aria-hidden="true">❙❙</span>`
+    : '';
+  const minis=fs.length>1
+    ? `<div class="minis">`+fotos().map((u,i)=>
+        `<button type="button" data-foto="${i}" aria-current="${i===pd.foto}"
+           aria-label="Foto ${i+1}"><img src="${esc(imgChica(u,ANCHO_MINI))}" alt=""></button>`).join('')+`</div>`
+    : '';
+  zFotos.innerHTML=`<div class="gal-wrap"><div class="gal" id="gal">${gal}</div>${flechas}</div>${minis}`;
+  irAFoto(pd.foto,false);
+  vigilarScroll();
+  arrancarCarrusel();
+}
+
+function irAFoto(i,suave=true){
+  const g=$('#gal'); if(!g) return;
+  const n=g.children.length; if(!n) return;
+  i=((i%n)+n)%n;                       // da la vuelta en los dos sentidos
+  const im=g.children[i]; if(!im) return;
+  pd.foto=i;
+  g.scrollTo({left:im.offsetLeft-g.offsetLeft,behavior:suave?'smooth':'instant'});
+  marcarMini(i);
+  /* Se adelanta a la siguiente mientras mirás esta: con 2 s de intervalo y
+     un CDN de ~1 s, pedirla recién al saltar llegaba tarde. */
+  const fs=fotos();
+  if(fs.length>1) precargar(imgChica(fs[(i+1)%fs.length],ANCHO_MODAL));
+}
+function marcarMini(i){
+  zFotos.querySelectorAll('.minis button').forEach((b,j)=>
+    b.setAttribute('aria-current',String(j===i)));
+}
+
+/* Si el usuario arrastra el carrusel a mano, hay que enterarse: si no,
+   `pd.foto` queda desfasado y el próximo salto automático pega un salto
+   hacia atrás. */
+function vigilarScroll(){
+  const g=$('#gal'); if(!g) return;
+  let t=null;
+  g.addEventListener('scroll',()=>{
+    clearTimeout(t);
+    t=setTimeout(()=>{
+      if(!pd) return;
+      const i=Math.round(g.scrollLeft/Math.max(1,g.children[0]?.offsetWidth||1));
+      if(i!==pd.foto&&g.children[i]){ pd.foto=i; marcarMini(i); }
+    },90);
+  },{passive:true});
+}
+
+/* Pasa solo cada 2 s. Se frena mientras el puntero está encima —para poder
+   mirar una foto— y no arranca si el usuario pidió menos movimiento. */
+const PASO_FOTOS=2000;
+let relojFotos=null;
+function pararCarrusel(){ clearInterval(relojFotos); relojFotos=null; }
+function arrancarCarrusel(){
+  pararCarrusel();
+  /* `pd.pausado` vive en el estado del modal, que se recrea en cada
+     apertura: la pausa vale para ESTE popup y no se arrastra al siguiente. */
+  if(QUIETO.matches||pd?.pausado||fotos().length<2) return;
+  relojFotos=setInterval(()=>{
+    if(!pd||panel.hidden){ pararCarrusel(); return; }
+    irAFoto(pd.foto+1);
+  },PASO_FOTOS);
+}
+
+/* Clic sobre la foto: congela en esa imagen. Otro clic, sigue. */
+function alternarPausa(){
+  if(!pd) return;
+  pd.pausado=!pd.pausado;
+  const marca=$('#pausa');
+  if(marca) marca.classList.toggle('visible',pd.pausado);
+  pd.pausado?pararCarrusel():arrancarCarrusel();
+}
+zFotos.addEventListener('click',e=>{
+  /* Las flechas y las miniaturas ya tienen su propio manejo. */
+  if(e.target.closest('button')) return;
+  if(e.target.closest('.gal')) alternarPausa();
+});
+/* El puntero encima frena para poder mirar, pero no cambia el estado de
+   pausa: al retirarlo solo se reanuda si el usuario no pausó a mano. */
+zFotos.addEventListener('pointerenter',pararCarrusel);
+zFotos.addEventListener('pointerleave',()=>{
+  if(pd&&!panel.hidden&&!pd.pausado) arrancarCarrusel();
+});
+
+function pintarFicha(){
+  const s=pd.s, d=pd.d, may=s.store_slug==='avellaneda';
+  const v=elegida();
+  const precio=v?.precio!=null?v.precio:s.price;
+  const menor=may&&s.price_retail&&s.price_retail>precio
+    ? `<span class="menor">por menor ${money(s.price_retail)}</span>` : '';
+
+  /* El histórico solo se muestra cuando dice algo: 743 de 149.595 productos
+     tienen movimiento real de precio. Un gráfico plano sería peor que nada. */
+  let baja='';
+  const h=(d?.historico||[]).filter(p=>p.price_cents!=null);
+  if(h.length>1){
+    const ahora=h[0].price_cents, antes=Math.max(...h.map(p=>p.price_cents));
+    const pct=antes>ahora?Math.round(100*(antes-ahora)/antes):0;
+    if(pct>=5) baja=`<span class="pd-baja">bajó ${pct}% desde ${money(antes/100)}</span>`;
+  }
+
+  /* Los colores con stock van primero: en un producto con 21 estampados y
+     uno solo disponible, ver veinte tachados antes que el comprable es
+     ruido puro. Dentro de cada grupo se respeta el orden de la tienda. */
+  const cs=colores().sort((a,b)=>(hayColor(b)?1:0)-(hayColor(a)?1:0));
+  const ts=talles().length?talles():(s.sizes_available||[]).slice().sort(cmpTalle);
+  const bloqueColor=cs.length?`
+    <div class="pd-h">color ${pd.color?`<span class="elegido">${esc(pd.color)}</span>`:''}</div>
+    <div class="opts${cs.length>8?' muchos':''}">${cs.map(c=>{
+      const t=tinte(c);
+      return `<button class="opt color" type="button" data-color="${esc(c)}"
+        aria-pressed="${c===pd.color}" ${hayColor(c)?'':'disabled'}>
+        ${t?`<i style="background:${t}"></i>`:''}${esc(c)}</button>`;}).join('')}</div>`:'';
+  const bloqueTalle=ts.length?`
+    <div class="pd-h">talle ${pd.talle?`<span class="elegido">${esc(pd.talle)}</span>`:''}</div>
+    <div class="opts">${ts.map(t=>{
+      const libre=talles().length?hayTalle(t):true;
+      return `<button class="opt" type="button" data-talle="${esc(t)}"
+        aria-pressed="${t===pd.talle}" ${libre?'':'disabled'}>${esc(t)}</button>`;}).join('')}</div>`:'';
+
+  const desc=(d?.description||s.description||'').trim();
+  const meta=[];
+  if(may){ const c=curva(s); if(c) meta.push(c); }
+  else if(d?.category) meta.push(d.category);
+
+  const detalle=`
+    <span class="pd-marca">${esc(may?(s.seller_name||'local de Avellaneda'):(s.brand||s.store_slug))}</span>
+    <h2 class="pd-tit">${esc(d?.title||s.title)}</h2>
+    <div class="pd-precio"><span class="now">${money(precio)}</span>${menor}</div>
+    ${baja}
+    ${bloqueColor}
+    ${bloqueTalle}
+    ${desc?`<div class="pd-h">descripción</div><p class="pd-desc">${esc(desc.slice(0,600))}</p>`:''}
+    ${meta.length?`<div class="pd-meta">${meta.map(m=>`<span class="b">${esc(m)}</span>`).join('')}</div>`:''}`;
+
+  zFicha.innerHTML=`
+    <div class="solapas" role="tablist">
+      <button class="solapa" role="tab" data-solapa="detalle"
+        aria-selected="${pd.solapa==='detalle'}">Detalle</button>
+      <button class="solapa" role="tab" data-solapa="envio"
+        aria-selected="${pd.solapa==='envio'}">Envíos y compra</button>
+    </div>
+    <div class="pd">${pd.solapa==='detalle'?detalle:solapaEnvio()}</div>
+    <div class="pd-pie">
+      <a class="pd-ir" href="${esc(s.url)}" target="_blank" rel="noopener">ver en la tienda ↗</a>
+      <button class="pd-copiar" type="button" id="pd-copiar" title="Copiar link a esta opción"
+        aria-label="Copiar link a esta opción">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.5 1.5"/>
+          <path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.5-1.5"/></svg>
+      </button>
+    </div>`;
+}
+
+/* FadIA no tiene políticas de envío ni de devolución: el catálogo se arma
+   scrapeando vidrieras públicas y esos datos no están estructurados en
+   ninguna de las 7 plataformas. Lo que sí hay es la procedencia del dato y,
+   en Avellaneda, lo que el propio local escribe sobre envíos. Se muestra
+   eso y se dice de quién es la política — inventarla sería peor que no
+   tener la solapa. */
+function solapaEnvio(){
+  const s=pd.s, d=pd.d, may=s.store_slug==='avellaneda';
+  const filas=[];
+  filas.push([may?'Local':'Marca',
+    esc(may?(s.seller_name||'local de Avellaneda'):(s.brand||s.store_slug))]);
+  if(s.seller_address) filas.push(['Dirección',esc(s.seller_address)+' · Flores, CABA']);
+  if(may&&s.min_purchase) filas.push(['Compra mínima',esc(s.min_purchase)]);
+  else if(may){ const c=curva(s); if(c) filas.push(['Compra mínima',esc(c)]); }
+
+  /* Muchos locales de Avellaneda declaran el envío en su propio texto
+     ("HACEMOS ENVIOS Y PUNTOS DE ENCUENTRO"). Se cita textual. */
+  const texto=(d?.description||s.description||'');
+  const frases=texto.split(/[\n.]+/)
+    .map(f=>f.trim())
+    .filter(f=>f.length>6&&f.length<160&&/env[íi]o|cambio|devoluc|punto de encuentro/i.test(f));
+  if(frases.length) filas.push(['Dice el vendedor','«'+esc(frases.slice(0,2).join('. '))+'»']);
+
+  const fecha=x=>{ try{ return new Date(x).toLocaleDateString('es-AR',
+    {day:'numeric',month:'long',year:'numeric'}); }catch{ return null; } };
+  if(d?.scraped_at) filas.push(['Precio verificado',esc(fecha(d.scraped_at)||'—')]);
+  if(d?.first_seen_at) filas.push(['Visto desde',esc(fecha(d.first_seen_at)||'—')]);
+
+  return `<dl style="margin:0">${filas.map(([k,val])=>
+      `<div class="dato"><dt>${k}</dt><dd>${val}</dd></div>`).join('')}</dl>
+    <p class="aviso">Los envíos, cambios y devoluciones los define y los gestiona
+      ${may?'el local':'la tienda'}. FadIA no vende: muestra lo que la tienda publica
+      y te lleva hasta ahí.</p>`;
+}
+
+/* ---- interacción del modal ---- */
+panel.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.color!==undefined){
+    pd.color=b.getAttribute('aria-pressed')==='true'?null:b.dataset.color;
+    /* Si el talle elegido no existe en el color nuevo, se suelta en vez de
+       dejar una combinación que no se puede comprar. */
+    if(pd.talle&&!hayTalle(pd.talle)) pd.talle=null;
+    const v=elegida();
+    if(v?.img){ const i=fotos().indexOf(v.img); if(i>=0) pd.foto=i; }
+    pintarModal(); sincronizarURL(false);
+  } else if(b.dataset.talle!==undefined){
+    pd.talle=b.getAttribute('aria-pressed')==='true'?null:b.dataset.talle;
+    pintarFicha(); sincronizarURL(false);
+  } else if(b.dataset.solapa){
+    pd.solapa=b.dataset.solapa; pintarFicha();
+  } else if(b.dataset.foto!==undefined){
+    irAFoto(Number(b.dataset.foto)); arrancarCarrusel();   // reiniciar la cuenta
+  } else if(b.dataset.paso!==undefined){
+    irAFoto(pd.foto+Number(b.dataset.paso)); arrancarCarrusel();
+  } else if(b.id==='pd-copiar'){
+    copiarLink(b);
+  }
+});
+
+/* Abrir por link directo: /?p=<producto>&v=<variante>. Sin fila de búsqueda
+   hay que armar la semilla desde el propio detalle. */
+async function abrirDesdeURL(){
+  let u; try{ u=new URL(location.href); }catch{ return; }
+  const uid=u.searchParams.get('p'); if(!uid) return;
+  try{
+    const r=await fetch(`${API}/product/${encodeURIComponent(uid)}`);
+    if(!r.ok) return;
+    const d=await r.json();
+    const url1=x=>typeof x==='string'?x:(x&&x.url)||'';
+    const semilla={
+      product_uid:d.product_uid, title:d.title, url:d.url, brand:d.brand,
+      store_slug:d.store_slug, seller_name:d.seller_name, seller_address:d.seller_address,
+      min_purchase:d.min_purchase, min_qty:d.min_qty, min_unit:d.min_unit,
+      sizes_available:d.sizes_available||[], colors_available:d.colors_available||[],
+      images:(d.images||[]).map(url1).filter(Boolean), description:d.description,
+      price:(d.price_min_cents??0)/100,
+      price_retail:d.price_retail_cents!=null?d.price_retail_cents/100:null,
+    };
+    filas.set(uid,semilla);
+    abrirPanel(uid,semilla,{variante:u.searchParams.get('v'),desdeURL:true});
+  }catch{}
+}
+
+window.addEventListener('popstate',()=>{
+  if(!panel.hidden){ pushDeModal=false; cerrarPanel(); }
+});
+
+$('#panel-x').addEventListener('click',cerrarPanel);
+velo.addEventListener('click',cerrarPanel);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!panel.hidden) cerrarPanel(); });
+
+/* El escáner se monta sobre la grilla ya poblada y vive hasta que el modelo
+   termina de escribir. Si el usuario pidió menos movimiento, no se monta:
+   el `prefers-reduced-motion` del CSS apagaría las animaciones pero dejaría
+   el marco quieto encima, que es peor que no ponerlo. */
+const QUIETO=window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function escanear(grid,n){
+  if(QUIETO.matches) return;
+  apagarEscaner(grid);
+  grid.classList.add('leyendo');
+  /* Un overlay adentro de cada tarjeta. El --i ya está en la tarjeta —el
+     mismo que escalona su entrada— y las custom properties se heredan, así
+     que el retraso de cada barrido sale solo. */
+  for(const c of grid.querySelectorAll('.card')){
+    const ov=document.createElement('div');
+    ov.className='escaner';
+    ov.setAttribute('aria-hidden','true');
+    c.appendChild(ov);
+  }
+  /* La etiqueta sigue siendo una sola: es estado, no animación. Repetirla en
+     cada tarjeta taparía la foto. */
+  const et=document.createElement('span');
+  et.className='esc-etq';
+  et.setAttribute('aria-hidden','true');
+  et.textContent=`leyendo ${n} producto${n===1?'':'s'}…`;
+  grid.appendChild(et);
+}
+
+function apagarEscaner(grid){
+  grid.classList.remove('leyendo');
+  grid.querySelectorAll('.escaner,.esc-etq').forEach(e=>e.remove());
+}
+
+function md(t){
+  return esc(t).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\[(\d{1,2})\]/g,(m,n)=>`<span class="cite" data-t="${turno}" data-n="${n}">[${n}]</span>`)
+    .split(/\n{2,}/).map(p=>`<p>${p.replace(/\n/g,'<br>')}</p>`).join('');
+}
+
+function refinamientos(rows){
+  /* Refinar por atributo de moda antes que por precio: el precio ya está
+     en la tarjeta, lo que el usuario no ve es qué otras opciones tiene. */
+  const out=[];
+  if(modo==='marcas'){
+    const t=[...new Set(rows.flatMap(r=>r.sizes_available||[]))];
+    if(t.length) out.push('en talle '+t[0]);
+    const c=[...new Set(rows.flatMap(r=>r.colors_available||[]))];
+    if(c.length) out.push('en '+c[0].toLowerCase());
+    const b=[...new Set(rows.map(r=>r.brand).filter(Boolean))];
+    if(b.length>1) out.push('solo '+b[0]);
+    out.push('algo más clásico','algo más audaz');
+  }else{
+    const l=[...new Set(rows.map(r=>r.seller_name).filter(Boolean))];
+    if(l.length>1) out.push('solo de '+l[0]);
+    out.push('con curva más chica');
+    const precios=rows.map(r=>r.price).sort((a,b)=>a-b);
+    if(precios.length) out.push('más económicos');
+  }
+  return out.slice(0,4);
+}
+
+document.addEventListener('click',e=>{
+  const f=e.target.closest('[data-fav]');
+  if(f){
+    e.preventDefault(); e.stopPropagation();      // no abrir el modal al guardar
+    const uid=f.closest('.card')?.dataset.uid;
+    const on=!f.classList.contains('on');
+    f.classList.toggle('on',on);
+    f.setAttribute('aria-pressed',String(on));
+    if(uid){ on?FAVS.add(uid):FAVS.delete(uid); guardarFavs(); }
+    /* El mismo producto puede estar en varios turnos del hilo: se sincronizan
+       todos para que no queden dos corazones distintos del mismo artículo. */
+    if(uid) document.querySelectorAll(`.card[data-uid="${CSS.escape(uid)}"] [data-fav]`)
+      .forEach(o=>{ o.classList.toggle('on',on); o.setAttribute('aria-pressed',String(on)); });
+    return;
+  }
+
+  /* cmd/ctrl/shift o rueda: que siga yendo a la tienda como cualquier link */
+  const t=e.target.closest('.card');
+  if(t&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey&&e.button===0){
+    const uid=t.dataset.uid, s=filas.get(uid);
+    if(s){ e.preventDefault(); abrirPanel(uid,s); return; }
+  }
+
+  const c=e.target.closest('.cite');
+  if(c){ const el=document.getElementById(`c${c.dataset.t}-${c.dataset.n}`);
+    if(el){ document.querySelectorAll('.card.hl').forEach(x=>x.classList.remove('hl'));
+      el.classList.add('hl'); el.scrollIntoView({block:'center'}); } }
+});
+$('#seeds').addEventListener('click',e=>{
+  if(e.target.classList.contains('seed')&&!busy){ $('#q').value=e.target.textContent; $('#form').requestSubmit(); }
+});
+thread.addEventListener('click',e=>{
+  const r=e.target.closest('.chip.act');
+  if(r&&!busy){ $('#q').value=r.dataset.q; $('#form').requestSubmit(); }
+});
+
+async function preguntar(q){
+  busy=true; $('#send').disabled=true; $('#q').value=''; $('#q').blur();
+  $('#intro')?.remove();
+  turno++;
+
+  const t=document.createElement('section');
+  t.className='turn';
+  t.innerHTML=`<div class="ask">${esc(q)}</div>
+    <div class="chips" data-chips hidden></div>
+    <div class="reply">${MARK}<div class="prose" data-prose><span class="pulse"></span></div></div>
+    <div class="grid" data-grid>${'<div class="skel"></div>'.repeat(6)}</div>
+    <div class="chips refine" data-refine hidden></div>`;
+  thread.appendChild(t);
+  t.scrollIntoView({block:'start'});
+
+  const chips=t.querySelector('[data-chips]'), prose=t.querySelector('[data-prose]'),
+        grid=t.querySelector('[data-grid]'), refine=t.querySelector('[data-refine]');
+  let texto='';
+
+  try{
+    const res=await fetch(API+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:q,limit:8,canal:modo,genero:genero||null,historial:hilo.slice(-6)})});
+    if(res.status===429){ grid.innerHTML='';
+      prose.innerHTML='<p>Frená un toque: hay un límite de consultas por minuto para no saturar el modelo. Probá en unos segundos.</p>'; return; }
+    if(!res.ok) throw new Error('HTTP '+res.status);
+
+    const rd=res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buf='', ev=null;
+    while(true){
+      const {value,done}=await rd.read(); if(done) break;
+      buf+=value; const parts=buf.split('\n\n'); buf=parts.pop();
+      for(const raw of parts){
+        const m1=raw.match(/^event: (.+)$/m), m2=raw.match(/^data: (.+)$/m);
+        if(!m1||!m2) continue; ev=m1[1]; const d=JSON.parse(m2[1]);
+
+        if(ev==='filters'&&d.applied?.length){
+          chips.hidden=false;
+          chips.innerHTML=d.applied.map(a=>`<span class="chip">${esc(a)}</span>`).join('');
+        }
+        else if(ev==='results'){
+          grid.innerHTML=d.resultados.length
+            ? d.resultados.map(card).join('')
+            : `<div class="empty">Nada coincide en <b>${modo==='mayorista'?'por mayor':'marcas'}</b>. Probá el otro modo o aflojá el precio.</div>`;
+          if(d.resultados.length) escanear(grid,d.resultados.length);
+          chips.hidden=false;
+          if(d.aflojados?.length) chips.insertAdjacentHTML('beforeend',
+            d.aflojados.map(a=>`<span class="chip warn">sin ${esc(ES[a.split('=')[0]]||a.split('=')[0])}</span>`).join(''));
+          const etq=(GENEROS.find(g=>g[0]===genero)||[])[1];
+          if(genero) chips.insertAdjacentHTML('beforeend',`<span class="chip">${esc(etq)}</span>`);
+          chips.insertAdjacentHTML('beforeend',
+            `<span class="chip soft">${d.modo==='semantico'?'vectorial':'texto'}</span>`);
+          /* Chips por EJE, con el vocabulario que realmente aparece en
+             estos resultados. Antes eran genéricos ("más barato", "algo
+             más clásico"); ahora son "morley", "bengalina", "tiro alto" —
+             el idioma con el que se pide ropa en Argentina. */
+          const ejes=d.facetas||[];
+          if(ejes.length){
+            refine.hidden=false;
+            refine.innerHTML=ejes.map(e=>
+              `<span class="eje">${esc(e.eje)}</span>`+
+              e.opciones.map(o=>`<button class="chip act" type="button" data-q="${esc(o)}">${esc(o)}</button>`).join('')
+            ).join('');
+          } else {
+            const sug=refinamientos(d.resultados);
+            if(sug.length){ refine.hidden=false;
+              refine.innerHTML=sug.map(x=>`<button class="chip act" type="button" data-q="${esc(x)}">${esc(x)}</button>`).join(''); }
+          }
+        }
+        else if(ev==='answer'){ texto+=d.text; prose.innerHTML=md(texto); }
+        else if(ev==='error'){ prose.innerHTML=`<p>Se cortó la respuesta, pero los productos de arriba son válidos.</p>`; }
+        else if(ev==='done'&&!texto){ prose.innerHTML='<p>Mirá los resultados acá abajo.</p>'; }
+      }
+    }
+  }catch(err){
+    grid.innerHTML=''; prose.innerHTML=`<p>No pude conectar con la API. ${esc(err.message)}</p>`;
+  }finally{
+    busy=false; $('#send').disabled=false; prose.querySelector('.pulse')?.remove();
+    apagarEscaner(grid);
+    if(texto) hilo.push({pregunta:q, respuesta:texto.slice(0,400)});
+    if(hilo.length>6) hilo=hilo.slice(-6);
+    pintarHilo();
+  }
+}
+
+function pintarHilo(){
+  const n=hilo.length;
+  $('#hilo-info').hidden = n===0;
+  $('#hilo-n').textContent = n===1 ? 'siguiendo 1 pregunta' : `siguiendo ${n} preguntas`;
+}
+$('#hilo-nuevo').addEventListener('click',()=>{ hilo=[]; pintarHilo(); $('#q').focus(); });
+
+$('#form').addEventListener('submit',e=>{
+  e.preventDefault(); const q=$('#q').value.trim();
+  if(q&&!busy) preguntar(q);
+});
+boot();
+</script>
+</body>
+</html>
