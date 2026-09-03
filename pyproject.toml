@@ -21,6 +21,7 @@ packages = ["src/fadia"]
 
 [dependency-groups]
 dev = [
+    "pillow>=12.3.0",
     "pytest>=9.1.1",
     "python-docx>=1.2.0",
 ]

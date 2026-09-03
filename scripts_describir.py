@@ -27,12 +27,16 @@ import base64
 import concurrent.futures as cf
 import json
 import os
+import random
 import re
+import io
+import threading
 import time
 import urllib.error
 import urllib.request
 
 import psycopg
+from PIL import Image
 
 DSN = os.getenv("DSN", "postgresql://fadia:fadia@localhost:5433/fadia")
 LMS = os.getenv("LMSTUDIO_URL", "http://localhost:1234/v1")
@@ -86,6 +90,96 @@ TIEMPO_IMAGEN = 45
 TIEMPO_MODELO = 300
 LOTE = 40           # cada cuántas filas se persiste
 
+# ---------------------------------------------------------------- imagen
+# LM Studio reparte el contexto (8192 tokens) entre sus 4 ranuras
+# paralelas, así que con varias corridas a la vez una foto de 700 KB no
+# entra en la fracción que le toca y el servidor responde 400. Secuencial
+# andaba, en paralelo no: por eso el error aparecía solo en la corrida real.
+#
+# Achicar la foto lo resuelve y además la hace 97 % más liviana (492 KB ->
+# 19 KB en la prueba). Para describir una prenda, 512 px sobran.
+LADO_MAX = 512
+
+
+def _achicar(crudo: bytes) -> bytes:
+    """Reduce la foto a algo que entre cómodo en el contexto del modelo."""
+    try:
+        im = Image.open(io.BytesIO(crudo))
+        im = im.convert("RGB")
+        im.thumbnail((LADO_MAX, LADO_MAX))
+        buf = io.BytesIO()
+        im.save(buf, "JPEG", quality=82)
+        return buf.getvalue()
+    except Exception:                                   # noqa: BLE001
+        # Si el formato es raro, se manda como vino: peor es no describir.
+        return crudo
+
+
+# ---------------------------------------------------------------- cortesía
+# Primera corrida: 6 hilos bajando imágenes sin ningún freno. El CDN de
+# Avellaneda empezó a devolver errores de conexión y el script se comió
+# 31.904 productos en minutos, marcándolos todos como fallidos — un fallo
+# de red consumía el item en vez de reintentarlo.
+#
+# Dos correcciones:
+#   1. Un freno por host, para no volver a golpear al mismo servidor.
+#   2. Un error de red NO consume el producto: se espera y se reintenta.
+#      Si el host sigue rechazando, se frena la corrida entera en vez de
+#      quemar la cola.
+PAUSA_POR_HOST = 0.12          # ~8 req/s repartidas entre los hilos
+REINTENTOS_RED = 4
+CORTE_POR_HOST = 60            # fallos seguidos de un host antes de abortar
+
+# LM Studio sirve el modelo con 4 ranuras paralelas. Con 6 hilos mandando
+# cargas de ~1 MB, las de más se rechazaban con HTTPError — y ese error
+# también consumía el producto. Se limita la concurrencia contra el modelo
+# y se reintenta igual que con las imágenes.
+RANURAS_MODELO = 4          # las mismas que expone LM Studio
+REINTENTOS_MODELO = 3
+_ranuras = threading.Semaphore(RANURAS_MODELO)
+
+_freno = threading.Lock()
+_ultimo: dict[str, float] = {}
+_seguidos: dict[str, int] = {}
+_abortar = threading.Event()
+
+
+def _esperar_turno(host: str) -> None:
+    """Serializa los pedidos a un mismo host, sin frenar a los demás."""
+    with _freno:
+        ahora = time.monotonic()
+        prox = _ultimo.get(host, 0) + PAUSA_POR_HOST
+        espera = max(0.0, prox - ahora)
+        _ultimo[host] = ahora + espera
+    if espera:
+        time.sleep(espera)
+
+
+def _bajar_imagen(url: str) -> bytes:
+    """Baja con freno y reintento. Un 403/429 es 'aflojá', no 'no existe'."""
+    from urllib.parse import urlparse
+    host = urlparse(url).netloc
+    ultimo_error: Exception | None = None
+    for intento in range(REINTENTOS_RED):
+        if _abortar.is_set():
+            raise RuntimeError("corrida abortada")
+        _esperar_turno(host)
+        try:
+            datos = _pedir(url, cabeceras={"User-Agent": "Mozilla/5.0"},
+                           timeout=TIEMPO_IMAGEN)
+            _seguidos[host] = 0
+            return datos
+        except Exception as e:                          # noqa: BLE001
+            ultimo_error = e
+            n = _seguidos.get(host, 0) + 1
+            _seguidos[host] = n
+            if n >= CORTE_POR_HOST:
+                _abortar.set()
+                raise RuntimeError(f"{host} rechaza {n} seguidos: se corta") from e
+            # espera creciente con ruido, para no reintentar todos a la vez
+            time.sleep(min(30, 1.5 * (2 ** intento)) * (0.7 + random.random() * 0.6))
+    raise ultimo_error if ultimo_error else RuntimeError("sin datos")
+
 
 def pendientes(conn, limite: int | None) -> list[tuple]:
     sql = """
@@ -118,10 +212,10 @@ def describir(fila: tuple) -> tuple[str, str | None, str]:
     if not img:
         return uid, None, "sin imagen"
     try:
-        crudo = _pedir(img, cabeceras={"User-Agent": "Mozilla/5.0"},
-                       timeout=TIEMPO_IMAGEN)
+        crudo = _achicar(_bajar_imagen(img))
     except Exception as e:                              # noqa: BLE001
-        return uid, None, f"imagen: {type(e).__name__}"
+        detalle = getattr(e, "code", "") or type(e).__name__
+        return uid, None, f"imagen: {detalle}"
 
     cuerpo = {
         "model": MODELO, "max_tokens": 120, "reasoning_effort": "none",
@@ -131,14 +225,25 @@ def describir(fila: tuple) -> tuple[str, str | None, str]:
                 "url": "data:image/jpeg;base64," + base64.b64encode(crudo).decode()}},
         ]}],
     }
-    try:
-        r = json.loads(_pedir(f"{LMS}/chat/completions",
-                              datos=json.dumps(cuerpo).encode(),
-                              cabeceras={"Content-Type": "application/json"},
-                              timeout=TIEMPO_MODELO))
-        txt = (r["choices"][0]["message"]["content"] or "").strip()
-    except Exception as e:                              # noqa: BLE001
-        return uid, None, f"modelo: {type(e).__name__}"
+    txt = None
+    ultimo: Exception | None = None
+    for intento in range(REINTENTOS_MODELO):
+        try:
+            with _ranuras:
+                r = json.loads(_pedir(f"{LMS}/chat/completions",
+                                      datos=json.dumps(cuerpo).encode(),
+                                      cabeceras={"Content-Type": "application/json"},
+                                      timeout=TIEMPO_MODELO))
+            txt = (r["choices"][0]["message"]["content"] or "").strip()
+            break
+        except Exception as e:                          # noqa: BLE001
+            ultimo = e
+            time.sleep(min(20, 2 * (2 ** intento)) * (0.7 + random.random() * 0.6))
+    if txt is None:
+        # El código HTTP importa: un 400 es la carga, un 429 es ritmo y un
+        # 500 es el servidor. Sin el número, "HTTPError" no dice nada.
+        detalle = getattr(ultimo, "code", "") or type(ultimo).__name__
+        return uid, None, f"modelo: {detalle}"
 
     txt = " ".join(txt.split())[:MAX_CARACTERES]
     if "NO_ES_PRENDA" in txt.upper():

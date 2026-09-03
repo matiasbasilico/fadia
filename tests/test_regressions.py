@@ -254,3 +254,21 @@ def test_la_descripcion_generada_entra_al_embedding():
     t = texto({"title": "FALDA X", "description": "Pollera de gabardina beige",
                "description_ia": "Pollera de jean negra"}).lower()
     assert "gabardina" in t and "jean" not in t
+
+
+# ── El color era SOLO de las variantes ───────────────────────────────────
+# El 49 % de las marcas no publica ningún color, así que pedir "campera
+# bordó" excluía media catálogo antes de mirar nada. Y los sinónimos eran
+# 11 colores supuestos: "borgoña" aparece 140 veces en las descripciones
+# generadas y no estaba, así que la campera borgoña quedaba afuera.
+
+@pytest.mark.parametrize("consulta,color", [
+    ("campera bordó", "red"),
+    ("campera borgoña", "red"),      # el que faltaba
+    ("pantalón oliva", "green"),
+    ("saco camel", "beige"),
+    ("remera terracota", "brown"),
+])
+def test_sinonimos_de_color_medidos(consulta, color):
+    from fadiaapi.search import parse_filters
+    assert parse_filters(consulta).color == color

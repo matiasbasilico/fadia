@@ -47,12 +47,23 @@ _CATEGORIAS = {
 # parse_filters: sin esto, todo lo hecho de denim era "jeans".
 _TELA_Y_CATEGORIA = {"jean", "jeans", "denim"}
 
+# Los sinónimos salen de contar el vocabulario que el modelo realmente
+# escribe en las descripciones generadas, no de suponerlo: "borgoña"
+# aparece 140 veces y no estaba, así que "campera bordó" dejaba afuera la
+# campera borgoña. Idem oliva (199), camel (88), vino (53), terracota (22).
 _COLORES = {
-    "black": ("negro", "negra", "negros"), "white": ("blanco", "blanca", "off white"),
-    "blue": ("azul", "celeste", "navy"), "red": ("rojo", "roja", "bordo", "bordó"),
-    "green": ("verde",), "pink": ("rosa", "rosado", "fucsia"),
-    "beige": ("beige", "nude", "camel", "crudo"), "brown": ("marron", "marrón", "chocolate"),
-    "grey": ("gris",), "yellow": ("amarillo", "mostaza"), "purple": ("violeta", "lila"),
+    "black": ("negro", "negra", "negros", "grafito", "antracita"),
+    "white": ("blanco", "blanca", "off white", "hueso", "marfil", "tiza"),
+    "blue": ("azul", "celeste", "navy", "turquesa", "petroleo", "petróleo"),
+    "red": ("rojo", "roja", "bordo", "bordó", "borgoña", "borgona", "vino",
+            "ladrillo", "coral", "salmon", "salmón"),
+    "green": ("verde", "oliva", "menta"),
+    "pink": ("rosa", "rosado", "fucsia"),
+    "beige": ("beige", "nude", "camel", "crudo", "arena", "tostado"),
+    "brown": ("marron", "marrón", "chocolate", "terracota", "ocre", "cobre"),
+    "grey": ("gris", "plomo"),
+    "yellow": ("amarillo", "mostaza", "dorado"),
+    "purple": ("violeta", "lila", "lavanda", "malva"),
 }
 
 
@@ -383,10 +394,23 @@ class SearchService:
         if filters.size:
             where.append(sql.SQL("%s = ANY(p.sizes_available)")); params.append(filters.size)
         if filters.color:
-            where.append(sql.SQL("""EXISTS (SELECT 1 FROM variant v
+            # El color estaba SOLO en las variantes, y el 49 % de las marcas
+            # no publica ninguno: pedir "campera bordó" excluía media
+            # catálogo antes de mirar nada. Ahora también cuenta si el color
+            # aparece escrito — incluida la descripción generada por visión,
+            # que casi siempre lo nombra.
+            palabras = _COLORES.get(filters.color, (filters.color,))
+            texto_color = sql.SQL(" OR ").join(
+                sql.SQL("(p.title ILIKE %s OR coalesce(p.description,'') ILIKE %s "
+                        "OR coalesce(p.description_ia,'') ILIKE %s)")
+                for _ in palabras)
+            where.append(sql.SQL("""(EXISTS (SELECT 1 FROM variant v
                 WHERE v.product_uid = p.product_uid
-                  AND v.color_normalized = %s AND v.availability = 'in_stock')"""))
+                  AND v.color_normalized = %s AND v.availability = 'in_stock')
+                OR ({texto}))""").format(texto=texto_color))
             params.append(filters.color)
+            for w in palabras:
+                params.extend([f"%{w}%", f"%{w}%", f"%{w}%"])
 
         # orden: si hay embedding, por distancia coseno; si no, por trigrama
         if embedding is not None:
