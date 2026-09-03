@@ -27,6 +27,7 @@ import base64
 import concurrent.futures as cf
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -65,6 +66,19 @@ foto ni lo que ves. Máximo 25 palabras.
 Si lo que se vende NO es una prenda ni un accesorio de vestir (una gift
 card, por ejemplo), respondé exactamente: NO_ES_PRENDA"""
 
+# La categoría ancla bien al modelo —evita que describa otra prenda del
+# conjunto— pero es una etiqueta INTERNA en inglés, y el modelo la copiaba
+# al texto: "Chaleco tipo knitwear beige". Pasaba en el 3,4 % de las
+# descripciones. Se traduce antes de inyectarla.
+CATEGORIA_ES = {
+    "tops": "parte de arriba", "pants": "pantalón", "jeans": "jean",
+    "shorts": "short", "skirts": "pollera", "dresses": "vestido",
+    "knitwear": "prenda de punto", "outerwear": "abrigo",
+    "lingerie": "lencería", "swimwear": "traje de baño",
+    "activewear": "ropa deportiva", "shoes": "calzado", "bags": "bolso",
+    "jewelry": "bijouterie", "accessories": "accesorio",
+}
+
 # El texto es para embeber, no para leer: si el modelo se va por las ramas
 # ensucia el vector en vez de mejorarlo.
 MAX_CARACTERES = 320
@@ -93,6 +107,11 @@ def _pedir(url: str, datos: bytes | None = None,
     return urllib.request.urlopen(req, timeout=timeout).read()
 
 
+def _que_se_vende(title: str, categoria: str | None) -> str:
+    es = CATEGORIA_ES.get(categoria or "")
+    return f"{title} (es un/a {es})" if es else title
+
+
 def describir(fila: tuple) -> tuple[str, str | None, str]:
     """Devuelve (uid, descripción, motivo). Si falla, descripción es None."""
     uid, title, img, categoria = fila
@@ -107,8 +126,7 @@ def describir(fila: tuple) -> tuple[str, str | None, str]:
     cuerpo = {
         "model": MODELO, "max_tokens": 120, "reasoning_effort": "none",
         "messages": [{"role": "user", "content": [
-            {"type": "text", "text": PROMPT.format(
-                que=f"{title}" + (f" (categoría: {categoria})" if categoria else ""))},
+            {"type": "text", "text": PROMPT.format(que=_que_se_vende(title, categoria))},
             {"type": "image_url", "image_url": {
                 "url": "data:image/jpeg;base64," + base64.b64encode(crudo).decode()}},
         ]}],
@@ -133,6 +151,11 @@ def describir(fila: tuple) -> tuple[str, str | None, str]:
                                "la imagen", "no hay prenda", "gift card",
                                "tarjeta regalo", "no se puede")):
         return uid, None, "comentario, no descripción"
+    # Red de seguridad: si el modelo igual copia la etiqueta interna, se
+    # saca del texto en vez de dejarla contaminando el vector.
+    txt = re.sub(r"\s*\b(tipo\s+)?(knitwear|outerwear|activewear|swimwear|"
+                 r"footwear|bottoms)\b", "", txt, flags=re.I).strip()
+    txt = re.sub(r"\s{2,}", " ", txt)
     # Una respuesta de tres palabras no aporta nada al vector.
     if len(txt) < 25:
         return uid, None, "respuesta corta"
