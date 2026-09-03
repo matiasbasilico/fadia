@@ -163,12 +163,17 @@ class Repository:
                 "price_points": len(pp_rows)}
 
     # ------------------------------------------------------------------ embeddings
-    def products_without_embedding(self, limit: int = 500) -> list[dict]:
+    def products_without_embedding(self, limit: int = 500,
+                                   solo_ia: bool = False) -> list[dict]:
+        """Los que no tienen vector, o —con `solo_ia`— los que acaban de
+        recibir descripción por visión y hay que volver a embeber."""
+        donde = ("description_ia IS NOT NULL AND embedding_ia_at IS DISTINCT FROM description_ia_at"
+                 if solo_ia else "embedding IS NULL")
         with self.pool.connection() as conn:
-            return conn.execute("""
-                SELECT product_uid, title, description, category, brand,
-                       sizes_available, colors_available, seller_name
-                FROM product WHERE embedding IS NULL
+            return conn.execute(f"""
+                SELECT product_uid, title, description, description_ia, category,
+                       brand, sizes_available, colors_available, seller_name
+                FROM product WHERE {donde}
                 ORDER BY product_uid LIMIT %s
             """, (limit,)).fetchall()
 
@@ -177,8 +182,12 @@ class Repository:
         if not rows:
             return 0
         with self.pool.connection() as conn, conn.cursor() as cur:
+            # `embedding_ia_at` deja constancia de con qué versión de la
+            # descripción generada se calculó este vector: es lo que permite
+            # re-embeber solo lo que cambió en vez de todo el catálogo.
             cur.executemany(
-                "UPDATE product SET embedding = %s::vector WHERE product_uid = %s", rows)
+                "UPDATE product SET embedding = %s::vector, "
+                "embedding_ia_at = description_ia_at WHERE product_uid = %s", rows)
         return len(rows)
 
     # ------------------------------------------------------------------ crawls

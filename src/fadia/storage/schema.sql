@@ -35,6 +35,16 @@ CREATE TABLE product (
     title            TEXT NOT NULL,
     title_normalized TEXT NOT NULL,
     description      TEXT,
+    -- Descripción generada a partir de la FOTO cuando la tienda no publica
+    -- ninguna: 43.383 productos tenían el vector armado casi solo con el
+    -- título. Va en su propia columna a propósito: nunca se pisa el texto
+    -- del comercio, y siempre se puede distinguir el dato scrapeado del
+    -- inferido.
+    description_ia   TEXT,
+    description_ia_at TIMESTAMPTZ,
+    -- Marca de qué versión de description_ia se embebió, para saber
+    -- qué falta re-embeber sin recorrer todo el catálogo.
+    embedding_ia_at  TIMESTAMPTZ,
     brand            TEXT,
 
     category      TEXT,                      -- taxonomía canónica

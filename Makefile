@@ -32,7 +32,11 @@ seed:      ## scrapea las 5 tiendas desde cero (~15 min, necesita el modelo)
 reset:     ## BORRA la base y la deja vacía (ofrece dump antes)
 	./scripts/reset.sh
 
-test:      ## corre los 48 tests de regresión
+describir: ## describe con visión los productos sin descripción (~15 h)
+	uv run python scripts_describir.py
+	uv run python scripts_embed.py --solo-ia
+
+test:      ## corre los tests de regresión
 	uv run pytest -q
 
 estado:    ## qué hay cargado ahora mismo

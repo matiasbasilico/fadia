@@ -212,3 +212,45 @@ def test_un_mensaje_corto_no_se_repite_sin_freno():
     # Por tramos, no por subcadena: "muchisimo" también contiene "si".
     tramos = [x.strip() for x in t.split("|")]
     assert tramos.count("si") <= MAX_REPETICIONES
+
+
+# ── "jean" es categoría Y tela a la vez ──────────────────────────────────
+# `jeans` se evaluaba antes que `skirts` y cortaba en la primera
+# coincidencia, así que "pollera de jean" se filtraba como pantalón. Lo
+# mismo con campera y camisa. La prenda concreta tiene que ganarle a la
+# categoría deducida de la tela.
+
+@pytest.mark.parametrize("consulta,categoria", [
+    ("pollera de jean con bolsillos", "skirts"),
+    ("campera de jean", "outerwear"),
+    ("camisa de jean", "tops"),
+    ("vestido de jean", "dresses"),
+    ("un jean wide leg", "jeans"),      # acá el jean SÍ es la prenda
+    ("jeans azules", "jeans"),
+])
+def test_la_prenda_le_gana_a_la_tela(consulta, categoria):
+    from fadiaapi.search import parse_filters
+    f = parse_filters(consulta)
+    assert f.category == categoria
+    assert f.tela == "denim"            # la tela se detecta igual
+
+
+def test_la_descripcion_generada_entra_al_embedding():
+    """Si la tienda no publica descripción, se usa la generada por visión."""
+    import importlib.util, pathlib
+    ruta = pathlib.Path(__file__).resolve().parents[1] / "scripts_embed.py"
+    spec = importlib.util.spec_from_file_location("_embed", ruta)
+    # el script corre main() al importarse: se lee la función suelta
+    fuente = ruta.read_text(encoding="utf-8")
+    ns: dict = {}
+    inicio = fuente.index("def texto(")
+    exec(fuente[inicio:fuente.index("\nasync def main")], ns)   # noqa: S102
+    texto = ns["texto"]
+
+    generado = texto({"title": "FALDA X", "description": None,
+                      "description_ia": "Pollera de jean negra"})
+    assert "pollera de jean" in generado.lower()
+    # la de la tienda manda cuando existe
+    t = texto({"title": "FALDA X", "description": "Pollera de gabardina beige",
+               "description_ia": "Pollera de jean negra"}).lower()
+    assert "gabardina" in t and "jean" not in t

@@ -43,6 +43,10 @@ _CATEGORIAS = {
     "swimwear": ("bikini", "malla", "mallas"),
 }
 
+# Palabras que son categoría Y tela a la vez. Ver el desempate en
+# parse_filters: sin esto, todo lo hecho de denim era "jeans".
+_TELA_Y_CATEGORIA = {"jean", "jeans", "denim"}
+
 _COLORES = {
     "black": ("negro", "negra", "negros"), "white": ("blanco", "blanca", "off white"),
     "blue": ("azul", "celeste", "navy"), "red": ("rojo", "roja", "bordo", "bordó"),
@@ -200,14 +204,24 @@ def parse_filters(q: str, hilo: list[str] | None = None) -> Filters:
         f.size = m.group(1).upper() if not m.group(1).isdigit() else m.group(1)
         f.applied.append(f"talle {f.size}")
 
+    # plural opcional: "sandalia" tiene que capturar "sandalias".
+    # El diccionario de normalize/taxonomy ya lo hacía; este quedó afuera
+    # y "sandalias para un casamiento" devolvía abrigos.
+    #
+    # Y no alcanza con cortar en la primera coincidencia: "jean" es a la vez
+    # categoría y TELA, y como `jeans` se evalúa antes que `skirts`, una
+    # "pollera de jean" se filtraba como pantalón. Lo mismo con "campera de
+    # jean" y "camisa de jean". La prenda concreta le gana a la categoría
+    # deducida solo de la tela.
+    candidatos: list[tuple[str, bool]] = []
     for cat, palabras in _CATEGORIAS.items():
-        # plural opcional: "sandalia" tiene que capturar "sandalias".
-        # El diccionario de normalize/taxonomy ya lo hacía; este quedó afuera
-        # y "sandalias para un casamiento" devolvía abrigos.
-        if any(re.search(rf"\b{w}s?\b", low) for w in palabras):
-            f.category = cat
-            f.applied.append(f"categoría {cat}")
-            break
+        hits = [w for w in palabras if re.search(rf"\b{w}s?\b", low)]
+        if hits:
+            candidatos.append((cat, all(w in _TELA_Y_CATEGORIA for w in hits)))
+    if candidatos:
+        prendas = [c for c, solo_tela in candidatos if not solo_tela]
+        f.category = prendas[0] if prendas else candidatos[0][0]
+        f.applied.append(f"categoría {f.category}")
 
     for col, palabras in _COLORES.items():
         if any(re.search(rf"\b{w}s?\b", low) for w in palabras):
@@ -351,12 +365,17 @@ class SearchService:
             if not valor:
                 continue
             claves = dict(EJES[campo]).get(valor, (valor,))
+            # También la descripción generada por visión: para 43.383
+            # productos es el único lugar donde dice de qué está hecha la
+            # prenda. Sin esto, describirlos no servía de nada — el filtro
+            # duro los dejaba afuera antes de llegar al ranking.
             cond = sql.SQL(" OR ").join(
-                sql.SQL("(p.title ILIKE %s OR coalesce(p.description,'') ILIKE %s)")
+                sql.SQL("(p.title ILIKE %s OR coalesce(p.description,'') ILIKE %s "
+                        "OR coalesce(p.description_ia,'') ILIKE %s)")
                 for _ in claves)
             where.append(sql.SQL("({})").format(cond))
             for k in claves:
-                params.extend([f"%{k}%", f"%{k}%"])
+                params.extend([f"%{k}%", f"%{k}%", f"%{k}%"])
         if filters.canal == "mayorista":
             where.append(sql.SQL("p.store_slug = %s")); params.append(CANAL_MAYORISTA)
         elif filters.canal == "marcas":

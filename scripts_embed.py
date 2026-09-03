@@ -30,7 +30,13 @@ def texto(r: dict) -> str:
         partes.append("colores " + " ".join(r["colors_available"][:6]))
     if r.get("sizes_available"):
         partes.append("talles " + " ".join(r["sizes_available"][:8]))
-    if d := r.get("description"):
+    # La descripción de la tienda manda; si no hay, entra la generada a
+    # partir de la foto (ver scripts_describir.py). Para 43.383 productos
+    # esa es la única señal que existe más allá del título.
+    d = r.get("description")
+    if not d or len(d.strip()) < 20:
+        d = r.get("description_ia")
+    if d:
         partes.append(d[:280])
     return " | ".join(p for p in partes if p)
 
@@ -40,6 +46,8 @@ async def main() -> None:
     ap.add_argument("--dsn", default=DSN)
     ap.add_argument("--batch", type=int, default=64)
     ap.add_argument("--limit", type=int, default=None, help="tope de productos")
+    ap.add_argument("--solo-ia", action="store_true",
+                    help="re-embebe los que recibieron descripción por visión")
     a = ap.parse_args()
 
     repo = Repository(a.dsn)
@@ -48,7 +56,7 @@ async def main() -> None:
     t0 = time.monotonic()
     try:
         while True:
-            rows = repo.products_without_embedding(limit=a.batch)
+            rows = repo.products_without_embedding(limit=a.batch, solo_ia=a.solo_ia)
             if not rows:
                 break
             # El servidor del modelo corta la conexión cada tantos miles de
